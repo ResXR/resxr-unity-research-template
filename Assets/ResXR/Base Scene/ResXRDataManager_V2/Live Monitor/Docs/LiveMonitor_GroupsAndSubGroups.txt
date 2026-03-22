@@ -1,0 +1,81 @@
+Live Monitor Streams, Groups, and SubGroups
+Continuous
+  - Body
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - Custom
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - Eyes
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - Gaze
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - Hands
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - Nodes
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - Other
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - Performance
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - SystemStatus
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+Face
+  - FaceBase
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+  - FaceExpressions
+    - FlagsOnly
+    - ValuesOnly
+    - Time
+
+Continuous / Body / FlagsOnly: Body_Confidence, Body_CalibrationStatus, {BodyJoint}_Flags
+Continuous / Body / ValuesOnly: Body_Fidelity, Body_SkeletonChangedCount, {BodyJoint}_px, {BodyJoint}_py, {BodyJoint}_pz, {BodyJoint}_qx, {BodyJoint}_qy, {BodyJoint}_qz, {BodyJoint}_qw
+Continuous / Body / Time: Body_Time
+Continuous / Custom / FlagsOnly: (none)
+Continuous / Custom / ValuesOnly: Custom_{TransformName}_px, Custom_{TransformName}_py, Custom_{TransformName}_pz, Custom_{TransformName}_qx, Custom_{TransformName}_qy, Custom_{TransformName}_qz, Custom_{TransformName}_qw
+Continuous / Custom / Time: (none)
+Continuous / Eyes / FlagsOnly: LeftEye_IsValid, LeftEye_Confidence, RightEye_IsValid, RightEye_Confidence
+Continuous / Eyes / ValuesOnly: RightEye_qx, RightEye_qy, RightEye_qz, RightEye_qw, LeftEye_qx, LeftEye_qy, LeftEye_qz, LeftEye_qw
+Continuous / Eyes / Time: Eyes_Time
+Continuous / Gaze / FlagsOnly: HasLeftEyeHit, HasRightEyeHit
+Continuous / Gaze / ValuesOnly: FocusedObject, EyeGazeHitPosition_X, EyeGazeHitPosition_Y, EyeGazeHitPosition_Z, LeftEyeGazeHitPosition_X, LeftEyeGazeHitPosition_Y, LeftEyeGazeHitPosition_Z, RightEyeGazeHitPosition_X, RightEyeGazeHitPosition_Y, RightEyeGazeHitPosition_Z, LeftFocusedObject, RightFocusedObject
+Continuous / Gaze / Time: (none)
+Continuous / Hands / FlagsOnly: LeftHand_Status, LeftHand_HandConfidence, LeftHand_FingerConf_Thumb, LeftHand_FingerConf_Index, LeftHand_FingerConf_Middle, LeftHand_FingerConf_Ring, LeftHand_FingerConf_Pinky, RightHand_Status, RightHand_HandConfidence, RightHand_FingerConf_Thumb, RightHand_FingerConf_Index, RightHand_FingerConf_Middle, RightHand_FingerConf_Ring, RightHand_FingerConf_Pinky
+Continuous / Hands / ValuesOnly: LeftHand_Root_px, LeftHand_Root_py, LeftHand_Root_pz, LeftHand_Root_qx, LeftHand_Root_qy, LeftHand_Root_qz, LeftHand_Root_qw, LeftHand_HandScale, Left_{BoneName}_x, Left_{BoneName}_y, Left_{BoneName}_z, Left_{BoneName}_qx, Left_{BoneName}_qy, Left_{BoneName}_qz, Left_{BoneName}_qw, RightHand_Root_px, RightHand_Root_py, RightHand_Root_pz, RightHand_Root_qx, RightHand_Root_qy, RightHand_Root_qz, RightHand_Root_qw, RightHand_HandScale, Right_{BoneName}_x, Right_{BoneName}_y, Right_{BoneName}_z, Right_{BoneName}_qx, Right_{BoneName}_qy, Right_{BoneName}_qz, Right_{BoneName}_qw
+Continuous / Hands / Time: LeftHand_RequestedTS, LeftHand_SampleTS, RightHand_RequestedTS, RightHand_SampleTS
+Continuous / Nodes / FlagsOnly: Node_EyeCenter_Present, Node_EyeCenter_Valid_Position, Node_EyeCenter_Valid_Orientation, Node_EyeCenter_Tracked_Position, Node_EyeCenter_Tracked_Orientation, Node_Head_Present, Node_Head_Valid_Position, Node_Head_Valid_Orientation, Node_Head_Tracked_Position, Node_Head_Tracked_Orientation, Node_HandLeft_Present, Node_HandLeft_Valid_Position, Node_HandLeft_Valid_Orientation, Node_HandLeft_Tracked_Position, Node_HandLeft_Tracked_Orientation, Node_HandRight_Present, Node_HandRight_Valid_Position, Node_HandRight_Valid_Orientation, Node_HandRight_Tracked_Position, Node_HandRight_Tracked_Orientation, Node_ControllerLeft_Present, Node_ControllerLeft_Valid_Position, Node_ControllerLeft_Valid_Orientation, Node_ControllerLeft_Tracked_Position, Node_ControllerLeft_Tracked_Orientation, Node_ControllerRight_Present, Node_ControllerRight_Valid_Position, Node_ControllerRight_Valid_Orientation, Node_ControllerRight_Tracked_Position, Node_ControllerRight_Tracked_Orientation
+Continuous / Nodes / ValuesOnly: Node_EyeCenter_px, Node_EyeCenter_py, Node_EyeCenter_pz, Node_EyeCenter_qx, Node_EyeCenter_qy, Node_EyeCenter_qz, Node_EyeCenter_qw, Node_Head_px, Node_Head_py, Node_Head_pz, Node_Head_qx, Node_Head_qy, Node_Head_qz, Node_Head_qw, Node_HandLeft_px, Node_HandLeft_py, Node_HandLeft_pz, Node_HandLeft_qx, Node_HandLeft_qy, Node_HandLeft_qz, Node_HandLeft_qw, Node_HandRight_px, Node_HandRight_py, Node_HandRight_pz, Node_HandRight_qx, Node_HandRight_qy, Node_HandRight_qz, Node_HandRight_qw, Node_ControllerLeft_px, Node_ControllerLeft_py, Node_ControllerLeft_pz, Node_ControllerLeft_qx, Node_ControllerLeft_qy, Node_ControllerLeft_qz, Node_ControllerLeft_qw, Node_ControllerRight_px, Node_ControllerRight_py, Node_ControllerRight_pz, Node_ControllerRight_qx, Node_ControllerRight_qy, Node_ControllerRight_qz, Node_ControllerRight_qw
+Continuous / Nodes / Time: Node_EyeCenter_Time, Node_Head_Time, Node_HandLeft_Time, Node_HandRight_Time, Node_ControllerLeft_Time, Node_ControllerRight_Time
+Continuous / Other / FlagsOnly: (none)
+Continuous / Other / ValuesOnly: timeSinceStartup
+Continuous / Other / Time: (none)
+Continuous / Performance / FlagsOnly: (none)
+Continuous / Performance / ValuesOnly: (none - AppMotionToPhotonLatency removed)
+Continuous / Performance / Time: (none)
+Continuous / SystemStatus / FlagsOnly: shouldRecenter, recenterEvent, TrackingOriginChange_Event, UserPresent, TrackingLost
+Continuous / SystemStatus / ValuesOnly: RecenterCount, TrackingOriginChange_PrevPose_px, TrackingOriginChange_PrevPose_py, TrackingOriginChange_PrevPose_pz, TrackingOriginChange_PrevPose_qx, TrackingOriginChange_PrevPose_qy, TrackingOriginChange_PrevPose_qz, TrackingOriginChange_PrevPose_qw, TrackingTransform_px, TrackingTransform_py, TrackingTransform_pz, TrackingTransform_qx, TrackingTransform_qy, TrackingTransform_qz, TrackingTransform_qw
+Continuous / SystemStatus / Time: (none)
+Face / FaceBase / FlagsOnly: Face_Status, FaceRegionConfidence_Upper, FaceRegionConfidence_Lower
+Face / FaceBase / ValuesOnly: timeSinceStartup
+Face / FaceBase / Time: Face_Time
+Face / FaceExpressions / FlagsOnly: (none)
+Face / FaceExpressions / ValuesOnly: FaceExpression2_{ExpressionName}
+Face / FaceExpressions / Time: (none)

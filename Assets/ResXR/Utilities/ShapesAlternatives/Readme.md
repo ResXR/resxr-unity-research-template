@@ -1,0 +1,1 @@
+Scripts to be implemened later for rendering of "Shapes" like component
