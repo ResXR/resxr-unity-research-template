@@ -6,7 +6,6 @@ using Cysharp.Threading.Tasks;
 using NaughtyAttributes;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -260,7 +259,7 @@ namespace ResXRData
             _faceSchema = face.schema;
 
             // 4.5) Initialize tracking space converter for world space conversion
-            OVRCameraRig cameraRig = ResXRPlayer.Instance.GetComponentInChildren<OVRCameraRig>();
+            OVRCameraRig cameraRig = FindFirstObjectByType<OVRCameraRig>();
             if (cameraRig != null && cameraRig.trackingSpace != null)
             {
                 TrackingSpaceConverter.Initialize(cameraRig.trackingSpace);
@@ -609,7 +608,7 @@ namespace ResXRData
 
 
 
-// this class was made for hand skeleton reconstruction from the raw data. it is not used in the current implementation, since they are pretty well documented under the Meta sdk.
+    // this class was made for hand skeleton reconstruction from the raw data. it is not used in the current implementation, since they are pretty well documented under the Meta sdk.
     [Serializable]
     public class HandSkeletonMeta
     {
