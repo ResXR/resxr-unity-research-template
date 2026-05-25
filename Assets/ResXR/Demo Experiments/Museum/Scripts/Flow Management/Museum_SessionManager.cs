@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using NaughtyAttributes;
+using ResXRData;
 using System;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -35,21 +36,49 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
 
 
     private void StartSession()
-    {   
+    {
+        ResXRDataManager_V2.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
 
+        // Slider config: written once per session so per-image rating rows stay compact
+        Museum_SceneReferencer.Instance.imagesRating.LogSliderConfig();
+
+        // Artwork bounds: written once per session (world-space bounds + orientation per artwork)
+        LogArtworkBounds();
     }
 
 
     private void EndSession()
-    {  
-        //exit
+    {
+        ResXRDataManager_V2.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
         Application.Quit();
     }
 
     private async UniTask BetweenTasksFlow()
     {
         await UniTask.Yield();
+    }
 
+    /// <summary>
+    /// Writes one ArtworkBoundsRow per artwork assigned in Museum_SceneReferencer.artworks.
+    /// Call once at session start. Wire up the artworks array in the Inspector before building.
+    /// </summary>
+    private void LogArtworkBounds()
+    {
+        Renderer[] artworks = Museum_SceneReferencer.Instance.artworks;
+        if (artworks == null || artworks.Length == 0)
+        {
+            Debug.LogWarning("[Museum_SessionManager] No artworks assigned in Museum_SceneReferencer. ArtworkBounds.csv will be empty.");
+            return;
+        }
+
+        float t = Time.realtimeSinceStartup;
+        foreach (Renderer artwork in artworks)
+        {
+            if (artwork == null) continue;
+            ResXRDataManager_V2.Instance.LogCustom(new ArtworkBoundsRow(t, artwork));
+        }
+
+        Debug.Log($"[Museum_SessionManager] Logged bounds for {artworks.Length} artworks.");
     }
 
 

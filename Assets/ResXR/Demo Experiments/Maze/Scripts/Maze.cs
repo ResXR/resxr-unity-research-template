@@ -11,6 +11,9 @@ public class Maze : MonoBehaviour
         originalOrientation = transform.rotation;
     }
 
+    /// <summary>Whether the maze is currently in its 180° rotated state.</summary>
+    public bool IsRotated => isRotated;
+
     public void Rotate180Degrees()
     {
         isRotated = !isRotated;

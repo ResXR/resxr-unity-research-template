@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Meta.WitAi;
+using ResXRData;
 using System;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -27,11 +28,13 @@ public class Maze_SessionManager : ResXRSingleton<Maze_SessionManager>
     {
         StartSession();
         await _startingPositionMark.WaitForPlayerAsync();
+        ResXRDataManager_V2.Instance.ReportEvent("player_at_start_zone", Time.realtimeSinceStartup, 0f);
+
         await _generalInstructions.ShowAndWaitForConfirmation();
 
         while (_currentTask < _tasks.Length)
         {
-            await Maze_TaskManager.Instance.RunTaskFlow(_tasks[_currentTask]);
+            await Maze_TaskManager.Instance.RunTaskFlow(_tasks[_currentTask], _currentTask);
             await BetweenTasksFlow();
             _currentTask++;
         }
@@ -46,19 +49,19 @@ public class Maze_SessionManager : ResXRSingleton<Maze_SessionManager>
     {
         // setup session initial conditions.
         InitReferences();
+        ResXRDataManager_V2.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
     }
 
 
     private void EndSession()
     {
         // setup end session conditions
+        ResXRDataManager_V2.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
     }
 
     private async UniTask BetweenTasksFlow()
     {
         await UniTask.Yield();
-
-        
     }
 
     private void InitReferences()

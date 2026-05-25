@@ -5,6 +5,9 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
+  - enabled: 0
+    path: Assets/ResXR/Base Scene/Base Scene.unity
+    guid: 50167e7d13b190d4098f7456dbae24fe
   - enabled: 1
     path: Assets/ResXR/Base Scene/Base Scene With Meta Interactions.unity
     guid: 99c9720ab356a0642a771bea13969a05
@@ -15,6 +18,9 @@ EditorBuildSettings:
     path: Assets/ResXR/Base Scene/ResXRDataManager_V2/Live Monitor/Assets/Live Monitor
       Scene [Open With Base Scene + Meta Interactions].unity
     guid: 4ad2bfa9a2113ae4e8aaf6e0ba7658a2
+  - enabled: 0
+    path: Assets/ResXR/Demo Experiments/Museum/Museum Experiment.unity
+    guid: 2c6ded2a38da5f34f9c3cc5d3fbd6365
   m_configObjects:
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: df4bf4de266c0e44bafe9095d6e989e8, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: defe9f001708b2d4a991163f9523dac2, type: 2}

@@ -581,6 +581,11 @@ MonoBehaviour:
   ratingInstructions: {fileID: 460759674}
   ratingTaskPlayerPositionMark: {fileID: 1712124476}
   imagesRating: {fileID: 157049592}
+  artworks:
+  - {fileID: 5980012948867114769}
+  - {fileID: 505935994}
+  - {fileID: 264603900}
+  - {fileID: 2065779210}
 --- !u!4 &172309936
 Transform:
   m_ObjectHideFlags: 0
@@ -735,6 +740,10 @@ PrefabInstance:
         Oil
         on canvas, soft realism'
       objectReference: {fileID: 0}
+    - target: {fileID: 7652167664537796113, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+      propertyPath: m_Name
+      value: Art Piece 3 Sprite
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -746,6 +755,11 @@ PrefabInstance:
 --- !u!4 &264603899 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5643968531981681863, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+  m_PrefabInstance: {fileID: 264603898}
+  m_PrefabAsset: {fileID: 0}
+--- !u!212 &264603900 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 879142482928451855, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
   m_PrefabInstance: {fileID: 264603898}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &319640673
@@ -1376,6 +1390,10 @@ PrefabInstance:
       value: "<b>Anselm de Ch\xE2t-Gep\xE9</b>\n\r\n<i>Objects Remembered</i>\r\n1691<br>\r\nOil
         on canvas, chiaroscuro\r\n"
       objectReference: {fileID: 0}
+    - target: {fileID: 7652167664537796113, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+      propertyPath: m_Name
+      value: Art Piece 2 Sprite
+      objectReference: {fileID: 0}
     - target: {fileID: 8880170530666750416, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.08
@@ -1411,6 +1429,11 @@ PrefabInstance:
 --- !u!4 &505935993 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5643968531981681863, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+  m_PrefabInstance: {fileID: 505935992}
+  m_PrefabAsset: {fileID: 0}
+--- !u!212 &505935994 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 879142482928451855, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
   m_PrefabInstance: {fileID: 505935992}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &595029278
@@ -1856,6 +1879,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Slider
       objectReference: {fileID: 0}
+    - target: {fileID: 2189595590691805815, guid: a4f6296ccde06f24494dd81bc9a9d158, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 4d0a7b7f67e94f5469ee6846e07e39a5, type: 2}
     - target: {fileID: 4217526805211997214, guid: a4f6296ccde06f24494dd81bc9a9d158, type: 3}
       propertyPath: m_Positions.Array.data[0].x
       value: -0.15400001
@@ -2564,10 +2591,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11103411eee7de240a29bf404bb64496, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _rounds:
-  - roundType: 1
+  _tasks:
+  - taskType: 1
     durationInSeconds: 10
-  - roundType: 0
+  - taskType: 0
     durationInSeconds: 0
 --- !u!114 &1549758235 stripped
 MonoBehaviour:
@@ -3528,6 +3555,10 @@ PrefabInstance:
       value: "<b>Artem G. P. Tch\xE9rov</b>\r\n<i>Approximation of a Self</i>\n\r\n1958<br>\r\nOil
         and pigment on canvas\r\n"
       objectReference: {fileID: 0}
+    - target: {fileID: 7652167664537796113, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+      propertyPath: m_Name
+      value: Art Piece 4 Sprite
+      objectReference: {fileID: 0}
     - target: {fileID: 8880170530666750416, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.09
@@ -3551,6 +3582,11 @@ PrefabInstance:
 --- !u!4 &2065779209 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5643968531981681863, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+  m_PrefabInstance: {fileID: 2065779208}
+  m_PrefabAsset: {fileID: 0}
+--- !u!212 &2065779210 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 879142482928451855, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
   m_PrefabInstance: {fileID: 2065779208}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8957941916390822
@@ -4158,6 +4194,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7652167664537796113, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+      propertyPath: m_Name
+      value: Art Piece 1 Sprite
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4166,6 +4206,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+--- !u!212 &5980012948867114769 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 879142482928451855, guid: 4c3509d311cded64db6a14af0c7228cd, type: 3}
+  m_PrefabInstance: {fileID: 5980012948867114768}
+  m_PrefabAsset: {fileID: 0}
 --- !u!23 &6097138102570299109
 MeshRenderer:
   m_ObjectHideFlags: 0

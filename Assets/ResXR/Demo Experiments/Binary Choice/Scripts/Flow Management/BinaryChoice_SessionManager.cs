@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using ResXRData;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -48,13 +49,13 @@ public class BinaryChoice_SessionManager : ResXRSingleton<BinaryChoice_SessionMa
 
         BinaryChoice_SceneReferencer.Instance.choicesManager.LogStimulusBoundsOnce();
 
-        // Log experiment settings
+        ResXRDataManager_V2.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
+
         Debug.Log($"Total Tasks: {_tasks.Length}\n" +
                   $"Experiment settings:\n" +
                   $"Time between stimuli: {BinaryChoice_SceneReferencer.Instance.SecondsBetweenStimuli}");
 
         Debug.Log("Session Started");
-
     }
 
     private void InitializeReferences()
@@ -68,6 +69,7 @@ public class BinaryChoice_SessionManager : ResXRSingleton<BinaryChoice_SessionMa
     private void EndSession()
     {
         // setup end session conditions
+        ResXRDataManager_V2.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
         Debug.Log("Session Ended");
     }
 

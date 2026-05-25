@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using NaughtyAttributes;
+using ResXRData;
 using System;
 using UnityEngine;
 
@@ -36,9 +37,11 @@ public class FixationCross : MonoBehaviour
 
     public async UniTask ShowForSeconds(float seconds)
     {
+        float fixationStart = Time.realtimeSinceStartup;
         Show();
         await UniTask.Delay(TimeSpan.FromSeconds(seconds));
         Hide();
+        ResXRDataManager_V2.Instance.ReportEvent("fixation", fixationStart, Time.realtimeSinceStartup - fixationStart);
     }
 
 }

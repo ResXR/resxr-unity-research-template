@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using ResXRData;
 using UnityEngine;
 
 public class Museum_TaskManager : ResXRSingleton<Museum_TaskManager>
@@ -6,6 +7,7 @@ public class Museum_TaskManager : ResXRSingleton<Museum_TaskManager>
     private Museum_Trial[] _trials;
     private int _currentTrial = 0;
     private Museum_Task _currentTask;
+    private string _taskName;
 
     public async UniTask RunTaskFlow(Museum_Task task)
     {
@@ -25,13 +27,13 @@ public class Museum_TaskManager : ResXRSingleton<Museum_TaskManager>
             await Museum_SceneReferencer.Instance.ratingInstructions.ShowAndWaitForConfirmation(false);
         }
 
-        while (_currentTrial < _trials.Length) 
+        while (_currentTrial < _trials.Length)
         {
-            await Museum_TrialManager.Instance.RunTrialFlow(_trials[_currentTrial]);
+            await Museum_TrialManager.Instance.RunTrialFlow(_trials[_currentTrial], _taskName, _currentTrial);
             await BetweenTrialsFlow();
             _currentTrial++;
         }
-        
+
         if (_currentTask.taskType == Museum_TaskType.ImagesRating)
         {
             Museum_SceneReferencer.Instance.imagesRating.gameObject.SetActive(false); // Ensure the rating component is deactivated after use.
@@ -42,10 +44,11 @@ public class Museum_TaskManager : ResXRSingleton<Museum_TaskManager>
     private void StartTask()
     {
         // setup task initial conditions.
-
+        _taskName = _currentTask.taskType.ToString();
+        _currentTrial = 0;
         InitializeTrialsForThisTask();
 
-
+        ResXRDataManager_V2.Instance.ReportEvent($"task_start:{_taskName}", Time.realtimeSinceStartup, 0f);
     }
 
     private void InitializeTrialsForThisTask()
@@ -83,12 +86,12 @@ public class Museum_TaskManager : ResXRSingleton<Museum_TaskManager>
     private void EndTask()
     {
         // setup end task conditions
+        ResXRDataManager_V2.Instance.ReportEvent($"task_end:{_taskName}", Time.realtimeSinceStartup, 0f);
     }
 
     private async UniTask BetweenTrialsFlow()
     {
         await UniTask.Yield();
-
     }
 
     private async UniTask PlaceInstructionsInFrontOfPlayer(InstructionsPanel panel)

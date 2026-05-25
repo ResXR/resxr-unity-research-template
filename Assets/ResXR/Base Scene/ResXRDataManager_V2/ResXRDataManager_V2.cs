@@ -15,8 +15,45 @@ using static ResXRData.BuildInfoLoader;
 
 namespace ResXRData
 {
-    #region custom data classes defenitions
+    // ─────────────────────────────────────────────────────────────────────────
+    // HOW DATA CLASSES WORK IN RESXR  (read this once — it applies everywhere)
+    // ─────────────────────────────────────────────────────────────────────────
+    //
+    // A "data class" is a plain C# class with public fields. Each field becomes
+    // one column in a CSV file. The only requirements are:
+    //   1. Implement the CustomDataClass interface:
+    //          public string TableName => "YourTableName";
+    //   2. Store data in PUBLIC FIELDS (not properties).
+    //      Field declaration order = column order in the CSV.
+    //
+    // ResXR automatically:
+    //   • Creates {sessionTime}_{TableName}.csv on the first write
+    //   • Writes the header row from your field names
+    //   • Writes one data row per call
+    //   • Flushes to disk immediately — crash-safe
+    //
+    // The recommended pattern is to wrap LogCustom in a named reporter method,
+    // the same way LogLineToFile() wraps ResXRLogs here in this file, or the way
+    // LogChoice() wraps ChoiceEvent for the Binary Choice demo.
+    // That keeps your flow scripts clean — one readable call instead of
+    // "new MyClass(...)" scattered everywhere.
+    //
+    // WHERE SHOULD YOUR DATA CLASS LIVE?
+    //   • Here in this region — the simplest choice, everything in one place.
+    //   • A dedicated file next to your experiment scripts — keeps things tidy
+    //     when your experiment has many tables (see BinaryChoiceDataClasses.cs).
+    //
+    // Demo-specific tables already defined:
+    //   BinaryChoiceDataClasses.cs  →  ChoiceEvent, StimulusBounds
+    //   MazeDataClasses.cs          →  MazeTrialData
+    //   MuseumDataClasses.cs        →  ImageRatingRow, SliderConfigRow, ArtworkBoundsRow
+    // ─────────────────────────────────────────────────────────────────────────
+    #region custom data classes definitions
 
+    /// <summary>
+    /// Internal framework log. Written by LogLineToFile(string) — a quick way
+    /// to append a human-readable note to ResXRLogs.csv from anywhere in your code.
+    /// </summary>
     public class ResXRLogs : CustomDataClass
     {
         public string TableName => "ResXRLogs";
@@ -30,15 +67,22 @@ namespace ResXRData
         }
     }
 
+    /// <summary>
+    /// Universal trial summary row, written by every demo's TrialManager.EndTrial().
+    /// Gives you one row per trial across all experiments with a consistent schema,
+    /// making it easy to merge data from multiple sessions or paradigms.
+    /// Extend this with a demo-specific table (e.g. MazeTrials) when you need
+    /// extra columns — don't modify this class directly.
+    /// </summary>
     public class TrialsData : CustomDataClass
     {
         public string TableName => "TrialsData";
-        public string Session; // can be changed to int if needed
-        public string Task; // can be changed to int if needed
-        public string Trial; // can be changed to int if needed
-        public string TrialName; // unique name for the trial
-        public float StartTime; // timeSinceStartup at trial start
-        public float EndTime; // timeSinceStartup at trial end
+        public string Session;    // SessionTime string (yyyy.MM.dd_HH-mm) — links to session_metadata.json
+        public string Task;       // Task name or index
+        public string Trial;      // Trial index within the task (can be changed to int if needed)
+        public string TrialName;  // Human-readable unique name, e.g. "maze_t0_t3"
+        public float StartTime;   // Time.realtimeSinceStartup at trial start
+        public float EndTime;     // Time.realtimeSinceStartup at trial end
 
         public TrialsData(string session, string task, string trial, string trialName, float startTime, float endTime)
         {
@@ -49,92 +93,22 @@ namespace ResXRData
             StartTime = startTime;
             EndTime = endTime;
         }
-
-    }
-
-    public class ChoiceEvent : CustomDataClass
-    {
-        public string TableName => "ChoiceEvents";
-        public float TimeSinceStart;
-        public string Task;
-        public int Trial;
-        public string OptionAName;
-        public string OptionBName;
-        public string Choice;
-        public string ChosenOption;
-        public string HandUsed;
-        public float ReactionTime;
-        public float displayTime;
-        public float ChoiceTime;
-
-        public ChoiceEvent(string task, int trial, string optionAName, string optionBName, string choice,
-            string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
-        {
-            this.TimeSinceStart = Time.realtimeSinceStartup;
-            this.Task = task;
-            this.Trial = trial;
-            this.OptionAName = optionAName;
-            this.OptionBName = optionBName;
-            this.Choice = choice;
-            this.ChosenOption = chosenOption;
-            this.HandUsed = handUsed;
-            this.ReactionTime = reactionTime;
-            this.displayTime = displayTime;
-            this.ChoiceTime = choiceTime;
-        }
-    }
-
-    public class StimulusBounds : CustomDataClass
-    {
-        public string TableName => "StimulusBounds";
-        public float TimeSinceStart;
-        public string ChoiceId;
-        public float RendererCenterX;
-        public float RendererCenterY;
-        public float RendererCenterZ;
-        public float RendererSizeX;
-        public float RendererSizeY;
-        public float RendererSizeZ;
-        public float ColliderCenterX;
-        public float ColliderCenterY;
-        public float ColliderCenterZ;
-        public float ColliderSizeX;
-        public float ColliderSizeY;
-        public float ColliderSizeZ;
-
-        public StimulusBounds(float timeSinceStart, string choiceId, float rendererCenterX, float rendererCenterY, float rendererCenterZ,
-            float rendererSizeX, float rendererSizeY, float rendererSizeZ, float colliderCenterX, float colliderCenterY, float colliderCenterZ,
-            float colliderSizeX, float colliderSizeY, float colliderSizeZ)
-        {
-            TimeSinceStart = timeSinceStart;
-            ChoiceId = choiceId;
-            RendererCenterX = rendererCenterX;
-            RendererCenterY = rendererCenterY;
-            RendererCenterZ = rendererCenterZ;
-            RendererSizeX = rendererSizeX;
-            RendererSizeY = rendererSizeY;
-            RendererSizeZ = rendererSizeZ;
-            ColliderCenterX = colliderCenterX;
-            ColliderCenterY = colliderCenterY;
-            ColliderCenterZ = colliderCenterZ;
-            ColliderSizeX = colliderSizeX;
-            ColliderSizeY = colliderSizeY;
-            ColliderSizeZ = colliderSizeZ;
-        }
     }
 
     /// <summary>
-    /// One row in Events.csv — pipeline-friendly markers (name, onset, duration).
-    /// Times are expected to use <see cref="Time.realtimeSinceStartup"/> for onset (seconds since app start), matching
-    /// continuous CSV time columns; duration is in seconds (use 0 for point events). Same convention for downstream output standardization.
+    /// One row in Events.csv — a timeline of named markers with onset and duration.
+    /// Use Time.realtimeSinceStartup for onset so it aligns with the continuous CSV clock.
+    /// Use duration = 0 for point events (things that happen in an instant).
+    /// Use a real duration for stimulus/window events (emit the row at the END with duration = end - start).
+    /// Written by ResXRDataManager_V2.Instance.ReportEvent(...) — see that method below.
     /// </summary>
     public class ReportEvent : CustomDataClass
     {
         public string TableName => "Events";
 
-        public string name;
-        public float onset;
-        public float duration;
+        public string name;    // Event label, e.g. "trial_start:task1_t0" or "stimulus:task1_t3"
+        public float onset;    // Time.realtimeSinceStartup when the event started
+        public float duration; // Duration in seconds; 0 for point events
 
         public ReportEvent(string name, float onset, float duration)
         {
@@ -198,29 +172,56 @@ namespace ResXRData
 
         #endregion
 
+        // ─────────────────────────────────────────────────────────────────────
+        // LOGGING HELPERS  — call these from your experiment scripts
+        // ─────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Quick text log. Appends one row to ResXRLogs.csv with a timestamp and your message.
+        /// Useful for ad-hoc notes during development ("participant pressed wrong button", etc.).
+        /// For structured event data, prefer ReportEvent or LogCustom instead.
+        /// </summary>
         public void LogLineToFile(string line)
         {
-            // creates a new instance of AnalyticsLogLine data class. In it's constructor, it gets the line and automatically assign Time.time to the log time.
             logLine = new ResXRLogs(Time.realtimeSinceStartup, line);
-            // pass the data class instance to CustomCsvFromDataClass.Write to write it to file.
             this.LogCustom(logLine);
         }
 
-        #region project specific analitics reportes
+        #region built-in event reporters
 
+        // ── ReportEvent ────────────────────────────────────────────────────────
+        // A BIDS-compatible way to mark what happened and when in your experiment.
+        // Every call appends one row to Events.csv: (name, onset, duration).
+        //
+        // Usage patterns:
+        //   Point event  (something instantaneous):
+        //       ReportEvent("trial_start:task1_t0", Time.realtimeSinceStartup, 0f);
+        //
+        //   Duration event  (something with a known window — emit at the END):
+        //       float start = Time.realtimeSinceStartup;
+        //       /* ... wait for stimulus ... */
+        //       ReportEvent("stimulus:task1_t0", start, Time.realtimeSinceStartup - start);
+        //
+        // All demo experiments call this from their SessionManager, TaskManager,
+        // and TrialManager. See those files for examples.
+        /// <summary>
+        /// Writes one row to Events.csv. Use Time.realtimeSinceStartup for onset
+        /// so it aligns with the continuous CSV clock. Pass duration = 0 for point events.
+        /// </summary>
+        public void ReportEvent(string name, float onset, float duration)
+        {
+            LogCustom(new ReportEvent(name, onset, duration));
+        }
+
+        // ── LogChoice ──────────────────────────────────────────────────────────
+        // Binary Choice demo convenience wrapper. Writes one row to ChoiceEvents.csv.
+        // If you are not using the Binary Choice demo, you can ignore this method
+        // (or delete it — it only exists because BinaryChoice_TrialManager calls it).
         public void LogChoice(string task, int trial, string optionAName, string optionBName, string choice,
             string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
         {
             var choiceEvent = new ChoiceEvent(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
             LogCustom(choiceEvent);
-        }
-
-        /// <summary>
-        /// Writes one row to Events.csv. Pass <see cref="Time.realtimeSinceStartup"/> for onset unless you intentionally use another clock.
-        /// </summary>
-        public void ReportEvent(string name, float onset, float duration)
-        {
-            LogCustom(new ReportEvent(name, onset, duration));
         }
 
         #endregion
@@ -436,16 +437,40 @@ namespace ResXRData
         #endregion
 
         #region custom DataClass logging
-        // ---------- minimal API for researchers ----------
 
-        // Create & write a row to <TableName>.csv using a custom data class instance.
+        // ── LogCustom ──────────────────────────────────────────────────────────
+        // The low-level write method. You generally won't call this directly —
+        // instead, add a named reporter method to this class (like LogLineToFile
+        // and LogChoice below) that creates the data object and calls LogCustom.
+        // That keeps your experiment scripts clean and readable.
+        //
+        // Example: if you have a "MyTrialEvent" data class, add a method here:
+        //
+        //   public void LogMyTrialEvent(string label, float rt) {
+        //       LogCustom(new MyTrialEvent(label, rt));
+        //   }
+        //
+        // Then from your TrialManager you just write:
+        //   ResXRDataManager_V2.Instance.LogMyTrialEvent("stimulus_on", reactionTime);
+        //
+        // ──────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Writes one row to the CSV table for this data class.
+        /// The CSV file is created automatically on the first call.
+        /// Prefer creating a named reporter method over calling this directly.
+        /// </summary>
         public void LogCustom(CustomDataClass data)
         {
             if (data == null) return;
             CustomCsvFromDataClass.Write(data);
         }
 
-        // Overload that builds the object on demand (avoids allocations at call site).
+        /// <summary>
+        /// Overload that builds the data object on demand (avoids allocating at
+        /// the call site if the object won't always be needed).
+        /// Usage: LogCustom(() => new MyEvent("label"));
+        /// </summary>
         public void LogCustom(Func<CustomDataClass> make)
         {
             if (make == null) return;
