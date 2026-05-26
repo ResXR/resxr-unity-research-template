@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 15003, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: Binary Choice Demo
+  m_Name: ResXRData Live Monitor
   m_EditorClassIdentifier: 
   m_AssetVersion: 1
   m_BuildTarget: 13
@@ -21,9 +21,10 @@ MonoBehaviour:
   m_OverrideGlobalSceneList: 1
   m_Scenes:
   - m_enabled: 1
-    m_path: Assets/ResXR/Base Scene/Base Scene.unity
+    m_path: Assets/ResXR/Base Scene/Base Scene With Meta Interactions.unity
   - m_enabled: 1
-    m_path: Assets/ResXR/Demo Experiments/Binary Choice/Binary Choice Experiment.unity
+    m_path: Assets/ResXR/Base Scene/ResXRDataManager_V2/Live Monitor/Assets/Live
+      Monitor Scene [Open With Base Scene + Meta Interactions].unity
   m_ScriptingDefines: []
   m_PlayerSettingsYaml:
     m_Settings:
@@ -39,7 +40,7 @@ MonoBehaviour:
     - line: '|   useOnDemandResources: 0'
     - line: '|   accelerometerFrequency: 60'
     - line: '|   companyName: ResXR'
-    - line: '|   productName: ResXR-Unity-Research-Template-BinaryChoiceDemo'
+    - line: '|   productName: ResXR-Unity-Research-Template-LiveMonitor'
     - line: '|   defaultCursor: {instanceID: 0}'
     - line: '|   cursorHotspot: {x: 0, y: 0}'
     - line: '|   m_SplashScreenBackgroundColor: {r: 0.12156863, g: 0.12156863, b:
@@ -198,7 +199,7 @@ MonoBehaviour:
     - line: '|   androidMaxAspectRatio: 2.4'
     - line: '|   androidMinAspectRatio: 1'
     - line: '|   applicationIdentifier:'
-    - line: '|     Android: com.ResXR.ResXRUnityResearchTemplateBinaryChoiceDemo'
+    - line: '|     Android: com.ResXR.ResXRUnityResearchTemplateLiveMonitor'
     - line: '|   buildNumber:'
     - line: '|     Standalone: 0'
     - line: '|     VisionOS: 0'

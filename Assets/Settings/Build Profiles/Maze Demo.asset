@@ -22,11 +22,7 @@ MonoBehaviour:
   m_Scenes:
   - m_enabled: 1
     m_path: Assets/ResXR/Base Scene/Base Scene.unity
-  - m_enabled: 0
-    m_path: Assets/ResXR/Demo Experiments/Museum/Museum Experiment.unity
   - m_enabled: 1
-    m_path: Assets/ResXR/Demo Experiments/Binary Choice/Binary Choice Experiment.unity
-  - m_enabled: 0
     m_path: Assets/ResXR/Demo Experiments/Maze/Maze Experiment.unity
   m_ScriptingDefines: []
   m_PlayerSettingsYaml:
@@ -43,7 +39,7 @@ MonoBehaviour:
     - line: '|   useOnDemandResources: 0'
     - line: '|   accelerometerFrequency: 60'
     - line: '|   companyName: ResXR'
-    - line: '|   productName: ResXR-Unity-Research-Template-BinaryChoiceDemo'
+    - line: '|   productName: ResXR-Unity-Research-Template-MazeDemo'
     - line: '|   defaultCursor: {instanceID: 0}'
     - line: '|   cursorHotspot: {x: 0, y: 0}'
     - line: '|   m_SplashScreenBackgroundColor: {r: 0.12156863, g: 0.12156863, b:
@@ -202,14 +198,14 @@ MonoBehaviour:
     - line: '|   androidMaxAspectRatio: 2.4'
     - line: '|   androidMinAspectRatio: 1'
     - line: '|   applicationIdentifier:'
-    - line: '|     Android: com.ResXR.ResXRUnityResearchTemplateBinaryChoiceDemo'
+    - line: '|     Android: com.ResXR.ResXRUnityResearchTemplateMazeDemo'
     - line: '|   buildNumber:'
     - line: '|     Standalone: 0'
     - line: '|     VisionOS: 0'
     - line: '|     iPhone: 0'
     - line: '|     tvOS: 0'
     - line: '|   overrideDefaultApplicationIdentifier: 0'
-    - line: '|   AndroidBundleVersionCode: 96410826'
+    - line: '|   AndroidBundleVersionCode: 96420941'
     - line: '|   AndroidMinSdkVersion: 23'
     - line: '|   AndroidTargetSdkVersion: 0'
     - line: '|   AndroidPreferredInstallLocation: 0'

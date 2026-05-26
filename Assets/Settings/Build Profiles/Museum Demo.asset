@@ -24,10 +24,6 @@ MonoBehaviour:
     m_path: Assets/ResXR/Base Scene/Base Scene.unity
   - m_enabled: 1
     m_path: Assets/ResXR/Demo Experiments/Museum/Museum Experiment.unity
-  - m_enabled: 0
-    m_path: Assets/ResXR/Demo Experiments/Binary Choice/Binary Choice Experiment.unity
-  - m_enabled: 0
-    m_path: Assets/ResXR/Demo Experiments/Maze/Maze Experiment.unity
   m_ScriptingDefines: []
   m_PlayerSettingsYaml:
     m_Settings:
