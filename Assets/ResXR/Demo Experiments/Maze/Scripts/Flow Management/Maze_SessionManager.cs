@@ -1,7 +1,5 @@
 using Cysharp.Threading.Tasks;
-using Meta.WitAi;
 using ResXRData;
-using System;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -27,6 +25,7 @@ public class Maze_SessionManager : ResXRSingleton<Maze_SessionManager>
     public async UniTask RunSessionFlow()
     {
         StartSession();
+
         await _startingPositionMark.WaitForPlayerAsync();
         ResXRDataManager_V2.Instance.ReportEvent("player_at_start_zone", Time.realtimeSinceStartup, 0f);
 

@@ -62,7 +62,7 @@ public class PlayerPositionMark : MonoBehaviour
         {
             child.gameObject.SetActive(true);
         }
-        instructionsPanel.Show().Forget();
+        instructionsPanel.Show(false).Forget();
     }
 
     private void Hide()

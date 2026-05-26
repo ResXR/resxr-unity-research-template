@@ -4,19 +4,34 @@ using UnityEngine.Events;
 public class SimpleButton : MonoBehaviour
 {
     public UnityEvent SimpleButtonPressed = new UnityEvent();
-    public Material disabledMaterial;
-    public Renderer buttonGraphics;
-    private Material originalMaterial;
 
+    [SerializeField] private Material disabledMaterial;
+    [SerializeField] private Renderer buttonGraphics;
+
+    private Material originalMaterial;
     private bool disabled = false;
 
     private void Awake()
     {
-        originalMaterial = buttonGraphics.material;
+        if (buttonGraphics == null)
+        {
+            Debug.LogWarning($"[SimpleButton] Missing buttonGraphics on {name}", this);
+            return;
+        }
+
+        // Read the default material without instantiating a runtime copy in edit mode.
+        originalMaterial = buttonGraphics.sharedMaterial;
     }
 
     public void SetButtonEnabled(bool enabled)
     {
+        if (buttonGraphics == null)
+            return;
+
+        // Prevent editor-time scene mutation.
+        if (!Application.isPlaying)
+            return;
+
         if (enabled)
         {
             buttonGraphics.material = originalMaterial;
@@ -29,10 +44,14 @@ public class SimpleButton : MonoBehaviour
         }
     }
 
-
     private void OnTriggerEnter(Collider other)
     {
-        if (disabled) return;
+        if (!Application.isPlaying)
+            return;
+
+        if (disabled)
+            return;
+
         if (other.gameObject.CompareTag("Toucher"))
         {
             SimpleButtonPressed.Invoke();

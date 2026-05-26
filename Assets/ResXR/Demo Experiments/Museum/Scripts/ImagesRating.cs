@@ -26,7 +26,7 @@ public class ImagesRating : MonoBehaviour
         ResXRDataManager_V2.Instance.LogCustom(new SliderConfigRow(
             ratingSlider.MinValue,
             ratingSlider.MaxValue,
-            ratingSlider.NumOfSteps,
+            ratingSlider.NumOfIntervals,
             ratingSlider.AllowContinuousValues
         ));
     }
@@ -44,6 +44,7 @@ public class ImagesRating : MonoBehaviour
         }
 
         // Show rating panel, image and wait for user input
+        ratingSlider.ResetValue();
         ratingPanel.Show(false).Forget();
         SpriteRenderer currentImage = imagesToRate[currentImageIndex];
         currentImage.GameObject().SetActive(true);
@@ -59,7 +60,6 @@ public class ImagesRating : MonoBehaviour
         // hide image and rating panel and slider
         currentImage.GameObject().SetActive(false);
         ratingPanel.Hide().Forget();
-        ratingSlider.ResetValue();
         ratingSlider.gameObject.SetActive(false);
 
         // image_displayed: single event with duration = deliberation time

@@ -18,11 +18,11 @@ public class Slider : MonoBehaviour
     [Header("Settings")]
     [Tooltip("number of intervals. minimum 1")]
     [Min(1)]
-    public int NumOfSteps = 10;
+    public int NumOfIntervals = 10;
     public float MinValue = 0f;
     public float MaxValue = 1f;
 
-    [SerializeField, ReadOnly] private float StepSize => (MaxValue - MinValue) / NumOfSteps;
+    [SerializeField, ReadOnly] private float StepSize => (MaxValue - MinValue) / NumOfIntervals;
     [SerializeField] private string valueFormat = "F2";
     [SerializeField] private string valueUnitSymbol = "$";
     [Range(0f, 1f)]
@@ -69,6 +69,13 @@ public class Slider : MonoBehaviour
     #region Unity LifeCycle
     private void Awake()
     {
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+            return;
+#endif
+
+        initialValue = CurrentValue;
+
         if (hideOnAwake)
         {
             gameObject.SetActive(false);
@@ -156,7 +163,7 @@ public class Slider : MonoBehaviour
 #if UNITY_EDITOR
         if (!Application.isPlaying)
         {
-            ScheduleRegenerateStepMarks();   //  queue, don’t destroy in OnValidate
+            ScheduleRegenerateStepMarks();   //  queue, donï¿½t destroy in OnValidate
             return;
         }
 #endif
@@ -192,7 +199,7 @@ public class Slider : MonoBehaviour
     private bool StepMarksInvalid()
     {
         return stepMarks == null
-            || stepMarks.Count != NumOfSteps    // if you want endpoints included use NumOfSteps+1 here
+            || stepMarks.Count != NumOfIntervals    // if you want endpoints included use NumOfSteps+1 here
             || stepMarks.Exists(m => m == null);
     }
 
@@ -226,7 +233,7 @@ public class Slider : MonoBehaviour
             return;
         }
 
-        for (int i = 0; i < NumOfSteps; i++)
+        for (int i = 0; i < NumOfIntervals; i++)
         {
             float stepValue = MinValue + (i * StepSize);
             float t = (MaxValue - MinValue) > 0f ? (stepValue - MinValue) / (MaxValue - MinValue) : 0f;
@@ -314,7 +321,7 @@ public class Slider : MonoBehaviour
         if (stepMarks == null) stepMarks = new List<GameObject>();
 
         // If the list is invalid (wrong count or nulls), rebuild via your safe path
-        bool needsRebuild = stepMarks.Count != NumOfSteps || stepMarks.Exists(m => m == null);
+        bool needsRebuild = stepMarks.Count != NumOfIntervals || stepMarks.Exists(m => m == null);
         if (needsRebuild)
         {
             RequestRegenerateStepMarks();
@@ -322,7 +329,7 @@ public class Slider : MonoBehaviour
         }
 
         // Fast path: just move them
-        for (int i = 0; i < NumOfSteps; i++)
+        for (int i = 0; i < NumOfIntervals; i++)
         {
             // Using value-space spacing; identical to your Create loop:
             float stepValue = MinValue + (i * StepSize);
@@ -515,11 +522,11 @@ public class Slider : MonoBehaviour
 
         v = Mathf.Clamp(v, MinValue, MaxValue);
 
-        if (AllowContinuousValues || NumOfSteps <= 0)
+        if (AllowContinuousValues || NumOfIntervals <= 0)
             return v;
 
         // number of intervals, so each step is this size:
-        float stepSize = (MaxValue - MinValue) / NumOfSteps;
+        float stepSize = (MaxValue - MinValue) / NumOfIntervals;
 
         // find nearest step index
         int stepIndex = Mathf.RoundToInt((v - MinValue) / stepSize);

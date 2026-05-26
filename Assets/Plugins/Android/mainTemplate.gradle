@@ -4,8 +4,23 @@ apply from: '../shared/keepUnitySymbols.gradle'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+// Android Resolver Dependencies Start
+    implementation 'com.unity3d.ads:unity-ads:[4.16.3,4.17[' // Packages/com.unity.ads/Editor/Source/Dependencies.xml:7
+// Android Resolver Dependencies End
 **DEPS**}
 
+// Android Resolver Exclusions Start
+android {
+  packaging {
+      exclude ('/lib/armeabi/*' + '*')
+      exclude ('/lib/armeabi-v7a/*' + '*')
+      exclude ('/lib/mips/*' + '*')
+      exclude ('/lib/mips64/*' + '*')
+      exclude ('/lib/x86/*' + '*')
+      exclude ('/lib/x86_64/*' + '*')
+  }
+}
+// Android Resolver Exclusions End
 android {
     namespace "com.unity3d.player"
     ndkPath "**NDKPATH**"

@@ -1,5 +1,4 @@
 using Cysharp.Threading.Tasks;
-using Meta.XR.ImmersiveDebugger.UserInterface.Generic;
 using ResXRData;
 using UnityEngine;
 
@@ -24,7 +23,10 @@ public class Maze_TaskManager : ResXRSingleton<Maze_TaskManager>
             await SetTrialNumberAndShowTrialStartInstructions();
 
             await Maze_TrialManager.Instance.RunTrialFlow(_trials[_currentTrial], _taskName, _currentTrial);
-            await BetweenTrialsFlow();
+            if (_currentTrial < _trials.Length - 1) // don't rotate maze after the final trial
+            {
+                await BetweenTrialsFlow();
+            }
             _currentTrial++;
         }
 

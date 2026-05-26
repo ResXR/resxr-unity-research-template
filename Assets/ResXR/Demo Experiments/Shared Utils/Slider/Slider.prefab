@@ -50,7 +50,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9fe1ff5d99553042ac81d6a3764178a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  NumOfSteps: 10
+  NumOfIntervals: 10
   MinValue: 0
   MaxValue: 10
   valueFormat: N0
