@@ -24,6 +24,8 @@ public class Maze_SessionManager : ResXRSingleton<Maze_SessionManager>
 
     public async UniTask RunSessionFlow()
     {
+        await UniTask.Yield(); // let the scene fully settle before starting flow
+
         StartSession();
 
         await _startingPositionMark.WaitForPlayerAsync();

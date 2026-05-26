@@ -37,6 +37,7 @@ public class ResXRPlayer : ResXRSingleton<ResXRPlayer>
 
     // Color overlay
     [SerializeField] private MeshRenderer colorOverlayMR;
+    private CancellationTokenSource _fadeCts;
 
     public ControllersInputManager ControllersInputManager;
     public PinchingInputManager PinchingInputManager;
@@ -69,26 +70,50 @@ public class ResXRPlayer : ResXRSingleton<ResXRPlayer>
         }
     }
 
-    // covers player's view with color. 
+    // Covers player's view with a solid color, fading over duration seconds.
+    // Cancels any in-progress fade — last caller always wins.
     public async UniTask FadeViewToColor(Color targetColor, float duration)
     {
+        // Cancel any in-progress fade and start a fresh token for this one.
+        _fadeCts?.Cancel();
+        _fadeCts?.Dispose();
+        _fadeCts = new CancellationTokenSource();
+        CancellationToken token = _fadeCts.Token;
+
         if (duration == 0)
         {
             colorOverlayMR.material.color = targetColor;
+            Debug.Log($"[ResXRPlayer] Fade started: {targetColor} instant");
+            Debug.Log($"[ResXRPlayer] Fade finished: {targetColor}");
             return;
         }
 
         Color currentColor = colorOverlayMR.material.color;
-        if (currentColor == targetColor) return;
-
-        float lerpTime = 0;
-        while (lerpTime < duration)
+        if (currentColor == targetColor)
         {
-            lerpTime += Time.deltaTime;
-            float t = lerpTime / duration;
-            colorOverlayMR.material.color = Color.Lerp(currentColor, targetColor, t);
+            Debug.Log($"[ResXRPlayer] Fade skipped: view is already {targetColor}");
+            return;
+        }
 
-            await UniTask.Yield();
+        Debug.Log($"[ResXRPlayer] Fade started: {targetColor} over {duration}s");
+
+        try
+        {
+            float lerpTime = 0;
+            while (lerpTime < duration)
+            {
+                lerpTime += Time.deltaTime;
+                float t = lerpTime / duration;
+                colorOverlayMR.material.color = Color.Lerp(currentColor, targetColor, t);
+
+                await UniTask.Yield(token);
+            }
+
+            Debug.Log($"[ResXRPlayer] Fade finished: {targetColor}");
+        }
+        catch (OperationCanceledException)
+        {
+            Debug.Log($"[ResXRPlayer] Fade cancelled (was heading to {targetColor} over {duration}s)");
         }
     }
 
