@@ -32,7 +32,7 @@ public class Slider : MonoBehaviour
     public bool ShowStepMarks = true;
     public bool AllowContinuousValues = false;
 
-    [SerializeField] private bool hideOnAwake = false;
+    [SerializeField] private bool hideOnStart = false;
     [Tooltip("If true, the user must touch/move the slider before being able to confirm the value.")]
     [SerializeField] private bool requireSliderTouchBeforeConfirm = false;
     private bool _hasBeenTouched = false;
@@ -69,22 +69,17 @@ public class Slider : MonoBehaviour
     #region Unity LifeCycle
     private void Awake()
     {
-#if UNITY_EDITOR
-        if (!Application.isPlaying)
-            return;
-#endif
-
         initialValue = CurrentValue;
-
-        if (hideOnAwake)
-        {
-            gameObject.SetActive(false);
-        }
     }
 
 
     private void Start()
     {
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+            return;
+#endif
+
         if (stepMarkPrefab == null || minPoint == null || maxPoint == null || valueMark == null || lineRenderer == null)
         {
             Debug.LogError("Slider is not properly configured. Please assign all required references.");
@@ -125,6 +120,10 @@ public class Slider : MonoBehaviour
             confirmButton?.SetButtonEnabled(true);
         }
 
+        if (hideOnStart)
+        {
+            gameObject.SetActive(false);
+        }
     }
 
     private void Update()

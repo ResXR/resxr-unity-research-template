@@ -59,26 +59,38 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
     }
 
     /// <summary>
-    /// Writes one ArtworkBoundsRow per artwork assigned in Museum_SceneReferencer.artworks.
-    /// Call once at session start. Wire up the artworks array in the Inspector before building.
+    /// Writes one ArtworkBoundsRow per artwork assigned in Museum_SceneReferencer.
+    /// artworks and artworkColliders must be the same length and in the same order.
+    /// Call once at session start. Wire up both arrays in the Inspector before building.
     /// </summary>
     private void LogArtworkBounds()
     {
         Renderer[] artworks = Museum_SceneReferencer.Instance.artworks;
+        Collider[] colliders = Museum_SceneReferencer.Instance.artworkColliders;
+
         if (artworks == null || artworks.Length == 0)
         {
             Debug.LogWarning("[Museum_SessionManager] No artworks assigned in Museum_SceneReferencer. ArtworkBounds.csv will be empty.");
             return;
         }
 
-        float t = Time.realtimeSinceStartup;
-        foreach (Renderer artwork in artworks)
+        if (colliders == null || colliders.Length != artworks.Length)
         {
-            if (artwork == null) continue;
-            ResXRDataManager_V2.Instance.LogCustom(new ArtworkBoundsRow(t, artwork));
+            Debug.LogError($"[Museum_SessionManager] artworkColliders length ({colliders?.Length ?? 0}) does not match artworks length ({artworks.Length}). ArtworkBounds.csv will be empty.");
+            return;
         }
 
-        Debug.Log($"[Museum_SessionManager] Logged bounds for {artworks.Length} artworks.");
+        float t = Time.realtimeSinceStartup;
+        int logged = 0;
+        for (int i = 0; i < artworks.Length; i++)
+        {
+            if (artworks[i] == null) { Debug.LogError($"[Museum_SessionManager] artworks[{i}] is null — skipping."); continue; }
+            if (colliders[i] == null) { Debug.LogError($"[Museum_SessionManager] artworkColliders[{i}] is null — skipping."); continue; }
+            ResXRDataManager_V2.Instance.LogCustom(new ArtworkBoundsRow(t, artworks[i], colliders[i]));
+            logged++;
+        }
+
+        Debug.Log($"[Museum_SessionManager] Logged bounds for {logged} artworks.");
     }
 
 

@@ -1,18 +1,31 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class FollowEyeSphere : MonoBehaviour
 {
-    [SerializeField] float lerpSpeed;
+    [SerializeField] private float lerpSpeed = 10;
+    [SerializeField, ReadOnly] private Vector3 hitPoint;
+    [SerializeField, ReadOnly] private string focusedObject;
+    private ResXRPlayer player;
 
-    void Start()
+    private void Start()
     {
+        player = ResXRPlayer.Instance;
     }
 
-    void Update()
+    private void FixedUpdate()
     {
-        transform.position = Vector3.Lerp(transform.position, ResXRPlayer.Instance.EyeGazeHitPosition,
-            lerpSpeed * Time.deltaTime);
+        transform.position = Vector3.Lerp(transform.position, ResXRPlayer.Instance.EyeGazeHitPosition, lerpSpeed * Time.deltaTime);
+
+        hitPoint = player.EyeGazeHitPosition;
+
+        if (player.FocusedObject != null)
+        {
+            focusedObject = player.FocusedObject.name;
+        }
+        else
+        {
+            focusedObject = "null";
+        }
+
     }
 }

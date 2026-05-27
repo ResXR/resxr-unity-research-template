@@ -61,15 +61,15 @@ namespace ResXRData
         public float TimeSinceStart;
         public float MinValue;
         public float MaxValue;
-        public int NumOfSteps;
+        public int NumOfIntervals;
         public bool AllowContinuousValues;
 
-        public SliderConfigRow(float minValue, float maxValue, int numOfSteps, bool allowContinuous)
+        public SliderConfigRow(float minValue, float maxValue, int numOfIntervals, bool allowContinuous)
         {
             TimeSinceStart = Time.realtimeSinceStartup;
             MinValue = minValue;
             MaxValue = maxValue;
-            NumOfSteps = numOfSteps;
+            NumOfIntervals = numOfIntervals;
             AllowContinuousValues = allowContinuous;
         }
     }
@@ -96,7 +96,7 @@ namespace ResXRData
         public float RotationEulerX;
         public float RotationEulerY;
         public float RotationEulerZ;
-        // Collider bounds (if present; NaN otherwise)
+        // Collider world-space bounds (interaction area — on a dedicated collider GameObject)
         public float ColliderCenterX;
         public float ColliderCenterY;
         public float ColliderCenterZ;
@@ -104,7 +104,7 @@ namespace ResXRData
         public float ColliderSizeY;
         public float ColliderSizeZ;
 
-        public ArtworkBoundsRow(float timeSinceStart, Renderer artwork)
+        public ArtworkBoundsRow(float timeSinceStart, Renderer artwork, Collider col)
         {
             TimeSinceStart = timeSinceStart;
             ArtworkName = artwork.gameObject.name;
@@ -122,22 +122,13 @@ namespace ResXRData
             RotationEulerY = euler.y;
             RotationEulerZ = euler.z;
 
-            var col = artwork.GetComponent<Collider>();
-            if (col != null)
-            {
-                var cb = col.bounds;
-                ColliderCenterX = cb.center.x;
-                ColliderCenterY = cb.center.y;
-                ColliderCenterZ = cb.center.z;
-                ColliderSizeX = cb.size.x;
-                ColliderSizeY = cb.size.y;
-                ColliderSizeZ = cb.size.z;
-            }
-            else
-            {
-                ColliderCenterX = ColliderCenterY = ColliderCenterZ = float.NaN;
-                ColliderSizeX = ColliderSizeY = ColliderSizeZ = float.NaN;
-            }
+            var cb = col.bounds;
+            ColliderCenterX = cb.center.x;
+            ColliderCenterY = cb.center.y;
+            ColliderCenterZ = cb.center.z;
+            ColliderSizeX = cb.size.x;
+            ColliderSizeY = cb.size.y;
+            ColliderSizeZ = cb.size.z;
         }
     }
 }

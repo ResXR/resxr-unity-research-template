@@ -59,7 +59,7 @@ MonoBehaviour:
   CurrentValue: 5
   ShowStepMarks: 0
   AllowContinuousValues: 0
-  hideOnAwake: 0
+  hideOnStart: 0
   requireSliderTouchBeforeConfirm: 0
   confirmButton: {fileID: 0}
   stepMarkPrefab: {fileID: 494727271243741250, guid: 123d0f04b4916e74cbe1c03c0d4094a8, type: 3}
