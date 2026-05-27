@@ -7,7 +7,7 @@
    - [Base Scene](#21-base-scene)
    - [ResXRPlayer](#211-ResXRPlayer)
    - [ResXRSceneManager](#212-ResXRSceneManager)
-   - [ResXRDataManager_V2](#213-ResXRDataManager_V2)
+   - [ResXRDataManager](#213-ResXRDataManager)
    - [ResXR_RoomCalibrator](#214-ResXR_RoomCalibrator)
    - [ResXR Scene Template](#215-ResXR-scene-template)
 3. [Flow Management System](#3-flow-management-system)
@@ -118,7 +118,7 @@ The Base Scene contains several major subsystems:
 
 1. **ResXRPlayer** - Player controller and tracking systems
 2. **ResXRSceneManager** - Scene loading and transitions
-3. **ResXRDataManager_V2** - Data collection and export
+3. **ResXRDataManager** - Data collection and export
 4. **ResXR_RoomCalibrator** - Room-scale calibration
 
 ---
@@ -286,7 +286,7 @@ public bool EnableSeparateEyeRaycasts { get; set; }  // Set by Data Manager from
 2. **Per-eye rays (only when `EnableSeparateEyeRaycasts` is true)**: If the Data Manager recording option "Include Separate Eyes Gaze" is enabled, two additional raycasts are run each frame — one from the left eye position along its forward, one from the right—giving left/right hit positions and focused objects. Each per-eye ray uses only that eye's confidence.
 3. **Performance**: With the option off, only the combined ray runs (1 raycast). With the option on, up to 3 raycasts run (left, right, combined). In heavy scenes with many colliders, turning off per-eye raycasts can improve performance.
 
-**Recording options and ResXREyeTracker**: At runtime, `ResXRDataManager_V2` sets `EyeTracker.EnableSeparateEyeRaycasts` from `recordingOptions.includeSeparateEyesGaze` in its `Start()`. When that option is false, ResXREyeTracker skips the left and right raycasts and clears per-eye outputs; the combined ray still runs. When true, all three raycasts run. The combined ray is always computed when both eyes are confident—it does not depend on the recording option.
+**Recording options and ResXREyeTracker**: At runtime, `ResXRDataManager` sets `EyeTracker.EnableSeparateEyeRaycasts` from `recordingOptions.includeSeparateEyesGaze` in its `Start()`. When that option is false, ResXREyeTracker skips the left and right raycasts and clears per-eye outputs; the combined ray still runs. When true, all three raycasts run. The combined ray is always computed when both eyes are confident—it does not depend on the recording option.
 
 **Usage Example**:
 ```csharp
@@ -585,7 +585,7 @@ ResXR is designed as a **transparent, clear box** where researchers have full co
 
 **What's Transparent but API-Based**:
 
-Some systems like `ResXRDataManager_V2` provide simplified APIs (like custom data classes) to make common tasks easier, but the underlying code is still **completely transparent and open** for you to understand and modify if needed. The API is a convenience, not a black box.
+Some systems like `ResXRDataManager` provide simplified APIs (like custom data classes) to make common tasks easier, but the underlying code is still **completely transparent and open** for you to understand and modify if needed. The API is a convenience, not a black box.
 
 #### Base Scene Compatibility
 
@@ -623,28 +623,28 @@ Both will load your experiment scene additively using `ResXRSceneManager`.
 
 ---
 
-### 2.1.3 ResXRDataManager_V2
+### 2.1.3 ResXRDataManager
 
-**Location**: `Assets/ResXR/Base Scene/ResXRDataManager_V2/`
+**Location**: `Assets/ResXR/Base Scene/ResXRDataManager/`
 
 **Purpose**: Comprehensive data collection and export system for VR research data.
 
-**Key Script**: `ResXRDataManager_V2.cs`
+**Key Script**: `ResXRDataManager.cs`
 
-**Inheritance**: `ResXRSingleton<ResXRDataManager_V2>`
+**Inheritance**: `ResXRSingleton<ResXRDataManager>`
 
 #### Overview
 
-ResXRDataManager_V2 is a complete data logging system that automatically collects VR tracking data (head, hands, eyes, body, face) and allows researchers to add custom event logging. Data is exported to CSV files with automatic schema generation.
+ResXRDataManager is a complete data logging system that automatically collects VR tracking data (head, hands, eyes, body, face) and allows researchers to add custom event logging. Data is exported to CSV files with automatic schema generation.
 
-**Transparency Note**: While ResXRDataManager_V2 provides convenient APIs (like custom data classes) to simplify data logging, the entire codebase is **completely transparent and open**. You can read, understand, and modify any part of it if needed. The API is a convenience, not a black box - everything is visible and understandable.
+**Transparency Note**: While ResXRDataManager provides convenient APIs (like custom data classes) to simplify data logging, the entire codebase is **completely transparent and open**. You can read, understand, and modify any part of it if needed. The API is a convenience, not a black box - everything is visible and understandable.
 
 #### Key Features
 
 - **Automatic Continuous Data Collection**: Head, hands, eyes, body, face tracking
 - **Gaze recording options**: "Include Gaze" records the combined (cyclopean) hit point and focused object. "Include Separate Eyes Gaze" adds per-eye hit positions and focused objects and enables 3 raycasts per frame in ResXREyeTracker (left, right, combined); when off, only the combined ray runs (1 raycast). The combined ray always runs when both eyes are confident.
 - **Custom Event Logging**: Create custom data classes for experiment-specific events
-- **Events table**: Template includes `ReportEvent` (`Events.csv`) with columns `name`, `onset`, and `duration`; call `ResXRDataManager_V2.Instance.ReportEvent(...)`. Use `Time.realtimeSinceStartup` for `onset` to match continuous data and downstream pipelines.
+- **Events table**: Template includes `ReportEvent` (`Events.csv`) with columns `name`, `onset`, and `duration`; call `ResXRDataManager.Instance.ReportEvent(...)`. Use `Time.realtimeSinceStartup` for `onset` to match continuous data and downstream pipelines.
 - **CSV Export**: All data exported to organized CSV files
 - **Metadata**: Automatic session metadata generation
 - **Live Monitor**: Real-time data visualization (optional)
@@ -659,11 +659,11 @@ ResXRDataManager_V2 is a complete data logging system that automatically collect
 using ResXRData;
 using UnityEngine;
 
-// From anywhere with ResXRDataManager_V2 in the scene:
-ResXRDataManager_V2.Instance.ReportEvent("stimulus_onset", Time.realtimeSinceStartup, 0f);
+// From anywhere with ResXRDataManager in the scene:
+ResXRDataManager.Instance.ReportEvent("stimulus_onset", Time.realtimeSinceStartup, 0f);
 ```
 
-You can also add your own types implementing `CustomDataClass` (see `ChoiceEvent`, `StimulusBounds`, etc. in `ResXRDataManager_V2.cs`).
+You can also add your own types implementing `CustomDataClass` (see `ChoiceEvent`, `StimulusBounds`, etc. in `ResXRDataManager.cs`).
 
 **Guidelines**:
 - Must implement `CustomDataClass` interface
@@ -674,7 +674,7 @@ You can also add your own types implementing `CustomDataClass` (see `ChoiceEvent
 
 ##### 2. Reporter Functions
 
-Add helper functions in `ResXRDataManager_V2.cs` to log your events, or call `LogCustom` directly. The template includes:
+Add helper functions in `ResXRDataManager.cs` to log your events, or call `LogCustom` directly. The template includes:
 
 ```csharp
 public void ReportEvent(string name, float onset, float duration)
@@ -703,7 +703,7 @@ In the Unity Inspector, assign transforms you want to track continuously:
 
 ##### Collectors
 
-**Location**: `Assets/ResXR/Base Scene/ResXRDataManager_V2/Collectors/`
+**Location**: `Assets/ResXR/Base Scene/ResXRDataManager/Collectors/`
 
 Collectors pull data from the VR system every physics tick and write to CSV files.
 
@@ -718,7 +718,7 @@ Collectors pull data from the VR system every physics tick and write to CSV file
 
 ##### Core Infrastructure
 
-**Location**: `Assets/ResXR/Base Scene/ResXRDataManager_V2/Core Infrastructure/`
+**Location**: `Assets/ResXR/Base Scene/ResXRDataManager/Core Infrastructure/`
 
 - **SchemaBuilder.cs** - Defines column names for each CSV
 - **ColumnIndex.cs** - Stores ordered column names for lookup
@@ -728,14 +728,14 @@ Collectors pull data from the VR system every physics tick and write to CSV file
 
 ##### Metadata
 
-**Location**: `Assets/ResXR/Base Scene/ResXRDataManager_V2/Metadata/`
+**Location**: `Assets/ResXR/Base Scene/ResXRDataManager/Metadata/`
 
 - **BuildInfoLoader.cs** - Loads build information at runtime
 - **SessionMetaWriter.cs** - Writes `session_metadata.json` with session info (designed to support later Motion-BIDS export; includes device/platform provenance, tracking origin, reference frames for pipeline)
 
 ##### Live Monitor
 
-**Location**: `Assets/ResXR/Base Scene/ResXRDataManager_V2/Live Monitor/`
+**Location**: `Assets/ResXR/Base Scene/ResXRDataManager/Live Monitor/`
 
 Real-time data visualization system for monitoring data collection during experiments.
 
@@ -768,7 +768,7 @@ A: Files are saved to device storage. Path is logged in console at startup.
 **Q: Do I need to edit DataManager_V2 or SchemaBuilder?**  
 A: Typically no - you use the provided APIs (custom data classes, reporter functions). However, all code is transparent and open - you can read and modify it if your research requires it. The template is a "clear box" - nothing is hidden.
 
-For detailed information, see: `Assets/ResXR/Base Scene/ResXRDataManager_V2/Doc/ResXRDataManager_V2_README.txt`
+For detailed information, see: `Assets/ResXR/Base Scene/ResXRDataManager/Doc/ResXRDataManager_README.txt`
 
 ---
 
@@ -1016,7 +1016,7 @@ public class MyExperimentSessionManager : ResXRSingleton<MyExperimentSessionMana
     private void StartSession()
     {
         // Your session initialization logic
-        ResXRDataManager_V2.Instance.LogCustom("Session started");
+        ResXRDataManager.Instance.LogCustom("Session started");
     }
 
     private async UniTask BetweenTasksFlow()
@@ -1063,7 +1063,7 @@ public class TrialManager : ResXRSingleton<TrialManager>
         // Deactivate stimulus
         trial.stimulus.SetActive(false);
         // Log trial end
-        ResXRDataManager_V2.Instance.LogTrialEnd(trial.trialName);
+        ResXRDataManager.Instance.LogTrialEnd(trial.trialName);
     }
 
     private async UniTask YourTrialLogic()
@@ -1584,7 +1584,7 @@ graph TD
     PinchManager --> Pincher[Pincher]
     PinchManager --> APinchable[APinchable Objects]
     
-    ResXRPlayer --> ResXRDataManager[ResXRDataManager_V2]
+    ResXRPlayer --> ResXRDataManager[ResXRDataManager]
     ResXRDataManager --> Collectors[Data Collectors]
     ResXRDataManager --> CustomCsvWriter[Custom CSV Writer]
     
@@ -1625,7 +1625,7 @@ graph TD
 
 ```csharp
 // Log custom event
-ResXRDataManager_V2.Instance.LogChoice(trialNum, option1, option2, choice, reactionTime);
+ResXRDataManager.Instance.LogChoice(trialNum, option1, option2, choice, reactionTime);
 
 // Custom transforms are automatically tracked if added to inspector
 ```
@@ -1667,7 +1667,7 @@ await instructionsPanel.Hide();
 2. **Use UniTask for async**: Prefer UniTask over Coroutines for async operations
 3. **Own your scripts**: Edit the Flow Management scripts and SceneReferencer directly - you own your experiment code
 4. **No unnecessary inheritance**: Don't create wrapper classes when you can modify directly
-5. **Log custom events**: Use ResXRDataManager_V2 for all experiment data
+5. **Log custom events**: Use ResXRDataManager for all experiment data
 6. **Follow flow hierarchy**: Use Session → Task → Trial structure
 7. **Test in Editor**: Use editor calibration option for faster iteration
 8. **Organize scenes**: Keep Base Scene separate from experiment scenes
@@ -1689,7 +1689,7 @@ await instructionsPanel.Hide();
 - Verify confidence threshold (default 0.5)
 
 ### Data Not Logging
-- Check ResXRDataManager_V2 is in scene
+- Check ResXRDataManager is in scene
 - Verify custom transforms are assigned in inspector
 - Check file permissions on device
 
@@ -1703,8 +1703,8 @@ await instructionsPanel.Hide();
 ## Additional Resources
 
 - **Third-party notices**: `THIRD_PARTY_NOTICES.md` (Meta XR SDK, UniTask, NaughtyAttributes, DOTween, and other bundled dependencies)
-- **Data Manager Documentation**: `Assets/ResXR/Base Scene/ResXRDataManager_V2/Doc/ResXRDataManager_V2_README.txt`
-- **Data Sources**: `Assets/ResXR/Base Scene/ResXRDataManager_V2/Doc/data_sources_README.txt`
+- **Data Manager Documentation**: `Assets/ResXR/Base Scene/ResXRDataManager/Doc/ResXRDataManager_README.txt`
+- **Data Sources**: `Assets/ResXR/Base Scene/ResXRDataManager/Doc/data_sources_README.txt`
 - **Demo Experiments**: Reference implementations in `Assets/ResXR/Demo Experiments/`
 
 ---
@@ -1720,7 +1720,7 @@ This documentation covers the major components of the ResXR Research Template. F
 - **Customize directly** - no need for unnecessary inheritance or wrappers
 - **Own your experiment** - you have full control and visibility
 
-Some systems like `ResXRDataManager_V2` provide convenient APIs (like custom data classes) to simplify common tasks, but the underlying code is still completely transparent for you to understand and modify if needed.
+Some systems like `ResXRDataManager` provide convenient APIs (like custom data classes) to simplify common tasks, but the underlying code is still completely transparent for you to understand and modify if needed.
 
 For questions or issues, refer to the demo experiments as working examples, but remember: you own your experiment code - modify it as needed for your research.
 

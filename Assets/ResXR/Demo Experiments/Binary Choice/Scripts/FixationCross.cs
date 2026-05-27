@@ -41,7 +41,7 @@ public class FixationCross : MonoBehaviour
         Show();
         await UniTask.Delay(TimeSpan.FromSeconds(seconds));
         Hide();
-        ResXRDataManager_V2.Instance.ReportEvent("fixation", fixationStart, Time.realtimeSinceStartup - fixationStart);
+        ResXRDataManager.Instance.ReportEvent("fixation", fixationStart, Time.realtimeSinceStartup - fixationStart);
     }
 
 }

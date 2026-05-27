@@ -29,7 +29,7 @@ public class Maze_SessionManager : ResXRSingleton<Maze_SessionManager>
         StartSession();
 
         await _startingPositionMark.WaitForPlayerAsync();
-        ResXRDataManager_V2.Instance.ReportEvent("player_at_start_zone", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent("player_at_start_zone", Time.realtimeSinceStartup, 0f);
 
         await _generalInstructions.ShowAndWaitForConfirmation();
 
@@ -50,14 +50,14 @@ public class Maze_SessionManager : ResXRSingleton<Maze_SessionManager>
     {
         // setup session initial conditions.
         InitReferences();
-        ResXRDataManager_V2.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
     }
 
 
     private void EndSession()
     {
         // setup end session conditions
-        ResXRDataManager_V2.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
     }
 
     private async UniTask BetweenTasksFlow()

@@ -21,7 +21,7 @@ public class BinaryChoice_TaskManager : ResXRSingleton<BinaryChoice_TaskManager>
 
         float instructionsStart = Time.realtimeSinceStartup;
         await _currentTask.taskInstructions.ShowForSeconds(_instructionsDisplayTime);
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"task_instructions:{_currentTask.taskName}",
             instructionsStart,
             Time.realtimeSinceStartup - instructionsStart);
@@ -46,13 +46,13 @@ public class BinaryChoice_TaskManager : ResXRSingleton<BinaryChoice_TaskManager>
         _currentTrial = 0;
         CreateTrials();
 
-        ResXRDataManager_V2.Instance.ReportEvent($"task_start:{_currentTask.taskName}", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent($"task_start:{_currentTask.taskName}", Time.realtimeSinceStartup, 0f);
         Debug.Log($"[TaskManager] Task {_currentTask.taskName} Started");
     }
 
     private void EndTask()
     {
-        ResXRDataManager_V2.Instance.ReportEvent($"task_end:{_currentTask.taskName}", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent($"task_end:{_currentTask.taskName}", Time.realtimeSinceStartup, 0f);
         Debug.Log($"[TaskManager] Task {_currentTask.taskName} Ended");
     }
 

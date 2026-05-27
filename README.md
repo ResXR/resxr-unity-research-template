@@ -54,7 +54,7 @@ This project requires the Meta XR SDK, which is automatically installed via Unit
 2. Duplicate `New ResXRScene [Duplicate].unity`
 3. Rename it to your experiment name
 4. Add it to Build Settings (after Base Scene)
-5. **Important**: The Base Scene must be opened **with** your experiment scene additively. The Base Scene contains the player (`ResXRPlayer`) and data manager (`ResXRDataManager_V2`) which run continuously throughout your experiment, even when scenes are changed. Your experiment scene will be loaded additively on top of the Base Scene.
+5. **Important**: The Base Scene must be opened **with** your experiment scene additively. The Base Scene contains the player (`ResXRPlayer`) and data manager (`ResXRDataManager`) which run continuously throughout your experiment, even when scenes are changed. Your experiment scene will be loaded additively on top of the Base Scene.
 6. Edit the `SceneReferencer` and Flow Management scripts (SessionManager, TaskManager, TrialManager) directly to add your experiment references and logic
 7. Build and run!
 
@@ -64,7 +64,7 @@ This project requires the Meta XR SDK, which is automatically installed via Unit
 Assets/ResXR/
 ├── Base Scene/              # Core persistent scene and systems
 │   ├── ResXRPlayer/        # Player controller, hand/eye/face tracking
-│   ├── ResXRDataManager_V2/# Data collection and export system
+│   ├── ResXRDataManager/# Data collection and export system
 │   ├── SceneManagement/    # Scene loading and transitions
 │   └── ResXR_RoomCalibrator/# Room-scale calibration
 ├── Flow Management/        # Session/Task/Trial flow control
@@ -85,7 +85,7 @@ Assets/ResXR/
 - **Automatic Continuous Data**: Head, hands, eyes, body, face tracking at 50Hz
 - **Gaze**: Combined (cyclopean) gaze hit point and focused object always recorded when eye tracking is on. Optional **per-eye** hit points and focused objects (left/right) via the "Include Separate Eyes Gaze" recording option—enables 3 raycasts per frame instead of 1; turn off in heavy scenes to save performance.
 - **Custom Event Logging**: Create custom data classes for experiment-specific events
-- **Events table** (`Events.csv`): Template provides `ReportEvent` rows with `name`, `onset`, and `duration` (seconds). Use `Time.realtimeSinceStartup` for `onset` to match continuous data and downstream pipelines; call `ResXRDataManager_V2.Instance.ReportEvent(...)`.
+- **Events table** (`Events.csv`): Template provides `ReportEvent` rows with `name`, `onset`, and `duration` (seconds). Use `Time.realtimeSinceStartup` for `onset` to match continuous data and downstream pipelines; call `ResXRDataManager.Instance.ReportEvent(...)`.
 - **CSV Export**: All data exported to organized CSV files
 - **Metadata**: Automatic session metadata generation (supports later Motion-BIDS export; includes device offset, tracking origin, reference frames; `build_info_available` flags whether build provenance fields are present, otherwise they are left empty)
 
@@ -104,7 +104,7 @@ See `ResXRPlayer.cs` for the complete API. Access everything through `ResXRPlaye
 
 ### Scene Management
 - **Additive Loading**: Experiment scenes are loaded additively on top of the Base Scene, which must remain open throughout your experiment
-- **Persistent Base Scene**: The Base Scene contains the player (`ResXRPlayer`) and data manager (`ResXRDataManager_V2`) that run continuously, even when switching between experiment scenes
+- **Persistent Base Scene**: The Base Scene contains the player (`ResXRPlayer`) and data manager (`ResXRDataManager`) that run continuously, even when switching between experiment scenes
 - **Smooth Transitions**: Automatic fade effects during scene changes
 - **Player Repositioning**: Automatic player positioning per scene
 
@@ -121,7 +121,7 @@ See `ResXRPlayer.cs` for the complete API. Access everything through `ResXRPlaye
 ## 📚 Documentation
 
 - **[Full Component Documentation](ResXR_Template_Documentation.md)** - Comprehensive guide to all components
-- **[Data Manager Documentation](Assets/ResXR/Base%20Scene/ResXRDataManager_V2/Doc/ResXRDataManager_V2_README.txt)** - Data collection system details
+- **[Data Manager Documentation](Assets/ResXR/Base%20Scene/ResXRDataManager/Doc/ResXRDataManager_README.txt)** - Data collection system details
 - **Demo Experiments** - Working examples in `Assets/ResXR/Demo Experiments/`
 
 ## 🎓 Learning Resources
@@ -167,9 +167,9 @@ if (player.FocusedObject != null)
 await player.PinchingInputManager.WaitForHoldAndRelease(HandType.Right, 1.0f);
 
 // Pipeline-friendly event marker (Events.csv); onset uses same clock as continuous CSVs
-ResXRDataManager_V2.Instance.ReportEvent("stimulus_on", Time.realtimeSinceStartup, 0f);
+ResXRDataManager.Instance.ReportEvent("stimulus_on", Time.realtimeSinceStartup, 0f);
 
-// Choice trials: see LogChoice on ResXRDataManager_V2 for the full signature
+// Choice trials: see LogChoice on ResXRDataManager for the full signature
 
 // Switch scenes
 await ResXRSceneManager.Instance.SwitchActiveScene("NextExperimentScene");
@@ -183,7 +183,7 @@ await ResXRSceneManager.Instance.SwitchActiveScene("NextExperimentScene");
 3. Add to Build Settings (after Base Scene)
 4. **Scene Architecture**: The Base Scene and your experiment scene must be opened **additively** together. The Base Scene contains:
    - `ResXRPlayer` - Player controller with hand/eye/face tracking
-   - `ResXRDataManager_V2` - Data collection system
+   - `ResXRDataManager` - Data collection system
    - Other core systems that persist throughout your experiment
    
    These systems run continuously and remain active even when you switch between experiment scenes. Your experiment scene is loaded additively on top of the Base Scene, allowing you to change experiment content while keeping the player and data collection systems running.
@@ -260,7 +260,7 @@ For questions, issues, or inquiries:
 1. **Own Your Code** - Edit the Flow Management scripts (SessionManager, TaskManager, TrialManager) directly; they are stubs you implement for your experiment
 2. **Understand the System** - Read the code to understand how it works
 3. **Use Demo Experiments** - Learn from working examples
-4. **Log Everything** - Use ResXRDataManager_V2 for all experiment data
+4. **Log Everything** - Use ResXRDataManager for all experiment data
 5. **Follow Flow Hierarchy** - Use Session → Task → Trial structure
 6. **Keep It Transparent** - All code is open - understand and customize
 

@@ -42,14 +42,14 @@ public class Maze_TaskManager : ResXRSingleton<Maze_TaskManager>
         _trials = new Maze_Trial[_currentTask.numOfTrials];
         _currentTrial = 0;
 
-        ResXRDataManager_V2.Instance.ReportEvent($"task_start:{_taskName}", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent($"task_start:{_taskName}", Time.realtimeSinceStartup, 0f);
     }
 
 
     private void EndTask()
     {
         // setup end task conditions
-        ResXRDataManager_V2.Instance.ReportEvent($"task_end:{_taskName}", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent($"task_end:{_taskName}", Time.realtimeSinceStartup, 0f);
     }
 
     private async UniTask BetweenTrialsFlow()
@@ -68,7 +68,7 @@ public class Maze_TaskManager : ResXRSingleton<Maze_TaskManager>
     {
         await ResXRPlayer.Instance.FadeViewToColor(Color.black, fadeToBlackDuration);
         _maze.Rotate180Degrees();
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"maze_rotation:state={(_maze.IsRotated ? "rotated" : "original")}",
             Time.realtimeSinceStartup, 0f);
         await ResXRPlayer.Instance.FadeViewToColor(Color.clear, fadeToBlackDuration);

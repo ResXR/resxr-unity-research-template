@@ -49,7 +49,7 @@ Vector3 worldSpace = rigPosition + rotated;
 
 ### 1. Initialize at Startup
 
-In `ResXRDataManager_V2.Awake()`:
+In `ResXRDataManager.Awake()`:
 
 ```csharp
 OVRCameraRig cameraRig = FindObjectOfType<OVRCameraRig>();

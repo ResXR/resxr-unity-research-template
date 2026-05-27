@@ -1,8 +1,8 @@
-# CONTINUOUSDATA_V2 - column <- source
+# CONTINUOUSDATA - column <- source
 # NOTE: All columns are float unless otherwise specified. Types noted as: (int), (double), (string), (bool as 0/1)
 
 # - Timing (Unity clock kept for continuity) -
-# [Collector: ResXRDataManager_V2 (direct)]
+# [Collector: ResXRDataManager (direct)]
 timeSinceStartup                          <- Unity: Time.realTimeSinceStartup                        (double: seconds since app start)
 
 # ============================================================
@@ -164,10 +164,10 @@ Custom_<Name>_qx/_qy/_qz/_qw                <- Unity Transform.rotation.{x,y,z,w
 # - [hand-local space]: Relative to the hand's root (wrist). Each hand bone is relative to its root pose.
 
 
-# FACEEXPRESSIONS_V2 - column <- source
+# FACEEXPRESSIONS - column <- source
 
 # - Timing -
-# [Collector: ResXRDataManager_V2 (direct)]
+# [Collector: ResXRDataManager (direct)]
 timeSinceStartup                          <- Unity: Time.realTimeSinceStartup                        (double: seconds since app start; renamed from "TimeFromStart")
 
 # - Face state (dedicated API: FaceState2) -

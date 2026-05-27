@@ -30,7 +30,7 @@ Recording options (inspector):
 =====================================================
 
 
-1. HOW TO USE ResXRDataManager_V2
+1. HOW TO USE ResXRDataManager
 -----------------------------------------------------
 
 - **Custom data classes (events)**
@@ -43,7 +43,7 @@ Recording options (inspector):
   - Onset is expected to be `Time.realtimeSinceStartup` (seconds since app start), same clock as continuous CSVs;
     duration is in seconds (use 0 for point events). Used for downstream output standardization.
   - Log from code:
-      ResXRDataManager_V2.Instance.ReportEvent("trial_start", Time.realtimeSinceStartup, 0f);
+      ResXRDataManager.Instance.ReportEvent("trial_start", Time.realtimeSinceStartup, 0f);
 
   Example (matches the template’s ChoiceEvent shape):
       public class ChoiceEvent : CustomDataClass
@@ -65,7 +65,7 @@ Recording options (inspector):
       }
 
 - **Reporter functions**
-  Add helper functions in ResXRDataManager_V2 to log your new class (or call `LogCustom(...)` yourself).
+  Add helper functions in ResXRDataManager to log your new class (or call `LogCustom(...)` yourself).
 
   Example:
       public void LogChoice(string task, int trial, ...)
@@ -134,7 +134,7 @@ The system is made of small scripts grouped by role.
 
 A) Orchestrator
 ---------------
-- ResXRDataManager_V2.cs  
+- ResXRDataManager.cs  
   The conductor. Sets up schemas, opens CSV files,
   and calls collectors every physics tick. 
   owns all the CsvRowWriters and calls them each frame.

@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/ResXR/Base Scene/Base Scene With Meta Interactions.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 0
-    path: Assets/ResXR/Base Scene/ResXRDataManager_V2/Live Monitor/Assets/Live Monitor
+    path: Assets/ResXR/Base Scene/ResXRDataManager/Live Monitor/Assets/Live Monitor
       Scene [Open With Base Scene + Meta Interactions].unity
     guid: 4ad2bfa9a2113ae4e8aaf6e0ba7658a2
   - enabled: 0

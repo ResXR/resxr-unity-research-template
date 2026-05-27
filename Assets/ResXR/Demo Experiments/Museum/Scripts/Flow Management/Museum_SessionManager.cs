@@ -37,7 +37,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
 
     private void StartSession()
     {
-        ResXRDataManager_V2.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
 
         // Slider config: written once per session so per-image rating rows stay compact
         Museum_SceneReferencer.Instance.imagesRating.LogSliderConfig();
@@ -49,7 +49,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
 
     private void EndSession()
     {
-        ResXRDataManager_V2.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
         Application.Quit();
     }
 
@@ -86,7 +86,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
         {
             if (artworks[i] == null) { Debug.LogError($"[Museum_SessionManager] artworks[{i}] is null — skipping."); continue; }
             if (colliders[i] == null) { Debug.LogError($"[Museum_SessionManager] artworkColliders[{i}] is null — skipping."); continue; }
-            ResXRDataManager_V2.Instance.LogCustom(new ArtworkBoundsRow(t, artworks[i], colliders[i]));
+            ResXRDataManager.Instance.LogCustom(new ArtworkBoundsRow(t, artworks[i], colliders[i]));
             logged++;
         }
 

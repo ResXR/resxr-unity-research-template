@@ -311,6 +311,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5341097743721565736, guid: 967af0223632a1649afa8f1a4520fc54, type: 3}
+      propertyPath: _skeletonType
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 5572574682133057454, guid: 967af0223632a1649afa8f1a4520fc54, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -2182,7 +2186,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5715946916250606740, guid: 4cba690ca96e6b14fae904cb9db7120b, type: 3}
       propertyPath: m_Name
-      value: ResXR_DataManager_V2
+      value: ResXR_DataManager
       objectReference: {fileID: 0}
     - target: {fileID: 5715946916250606740, guid: 4cba690ca96e6b14fae904cb9db7120b, type: 3}
       propertyPath: m_IsActive

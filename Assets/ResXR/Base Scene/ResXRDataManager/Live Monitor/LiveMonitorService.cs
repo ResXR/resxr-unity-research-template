@@ -44,7 +44,7 @@ namespace ResXRData
             await UniTask.Yield(PlayerLoopTiming.Update);
 
             Debug.Log("[LiveMonitorService] DataManager is available, subscribing to events.");
-            ResXRDataManager_V2 dm = ResXRDataManager_V2.Instance;
+            ResXRDataManager dm = ResXRDataManager.Instance;
             dm.OnContinuousSample += OnContinuousSample;
             dm.OnFaceExpressionSample += OnFaceExpressionSample;
             Debug.Log("[LiveMonitorService] Initialized, Subscribed to ResXRDataManager_V2 events.");
@@ -52,7 +52,7 @@ namespace ResXRData
 
         private void OnDestroy()
         {
-            var dm = ResXRDataManager_V2.Instance;
+            var dm = ResXRDataManager.Instance;
             if (dm != null)
             {
                 dm.OnContinuousSample -= OnContinuousSample;

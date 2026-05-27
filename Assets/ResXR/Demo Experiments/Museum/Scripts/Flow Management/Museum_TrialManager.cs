@@ -50,7 +50,7 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
         isTrialRunning = true;
 
         _trialStartTime = Time.realtimeSinceStartup;
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"trial_start:{_currentTaskName}_t{_currentTrialIndex}",
             _trialStartTime, 0f);
     }
@@ -65,12 +65,12 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
         float endTime = Time.realtimeSinceStartup;
         string trialName = $"{_currentTaskName}_t{_currentTrialIndex}";
 
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"trial_end:{trialName}",
             endTime, 0f);
 
-        ResXRDataManager_V2.Instance.LogCustom(new TrialsData(
-            ResXRDataManager_V2.Instance.SessionTime,
+        ResXRDataManager.Instance.LogCustom(new TrialsData(
+            ResXRDataManager.Instance.SessionTime,
             _currentTaskName,
             _currentTrialIndex.ToString(),
             trialName,
@@ -92,7 +92,7 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
         // Single event logged at the end with the actual measured duration (not just the configured duration).
         float explorationStart = Time.realtimeSinceStartup;
         await UniTask.Delay(System.TimeSpan.FromSeconds(_currentTrial._trialDurationInSeconds));
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"free_exploration:{_currentTaskName}",
             explorationStart,
             Time.realtimeSinceStartup - explorationStart);

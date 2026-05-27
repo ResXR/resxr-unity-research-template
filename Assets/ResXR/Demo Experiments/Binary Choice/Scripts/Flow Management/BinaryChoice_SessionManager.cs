@@ -49,7 +49,7 @@ public class BinaryChoice_SessionManager : ResXRSingleton<BinaryChoice_SessionMa
 
         BinaryChoice_SceneReferencer.Instance.choicesManager.LogStimulusBoundsOnce();
 
-        ResXRDataManager_V2.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
 
         Debug.Log($"Total Tasks: {_tasks.Length}\n" +
                   $"Experiment settings:\n" +
@@ -69,7 +69,7 @@ public class BinaryChoice_SessionManager : ResXRSingleton<BinaryChoice_SessionMa
     private void EndSession()
     {
         // setup end session conditions
-        ResXRDataManager_V2.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
         Debug.Log("Session Ended");
     }
 

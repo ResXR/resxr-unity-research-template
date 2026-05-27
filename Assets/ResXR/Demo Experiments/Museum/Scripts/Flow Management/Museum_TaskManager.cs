@@ -48,7 +48,7 @@ public class Museum_TaskManager : ResXRSingleton<Museum_TaskManager>
         _currentTrial = 0;
         InitializeTrialsForThisTask();
 
-        ResXRDataManager_V2.Instance.ReportEvent($"task_start:{_taskName}", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent($"task_start:{_taskName}", Time.realtimeSinceStartup, 0f);
     }
 
     private void InitializeTrialsForThisTask()
@@ -86,7 +86,7 @@ public class Museum_TaskManager : ResXRSingleton<Museum_TaskManager>
     private void EndTask()
     {
         // setup end task conditions
-        ResXRDataManager_V2.Instance.ReportEvent($"task_end:{_taskName}", Time.realtimeSinceStartup, 0f);
+        ResXRDataManager.Instance.ReportEvent($"task_end:{_taskName}", Time.realtimeSinceStartup, 0f);
     }
 
     private async UniTask BetweenTrialsFlow()

@@ -84,7 +84,7 @@ public class ChoicesManager : MonoBehaviour
             choice.gameObject.SetActive(false);
 
         var data = new StimulusBounds(timeSinceStart, choiceId, rcX, rcY, rcZ, rsX, rsY, rsZ, ccX, ccY, ccZ, csX, csY, csZ);
-        ResXRDataManager_V2.Instance.LogCustom(data);
+        ResXRDataManager.Instance.LogCustom(data);
     }
 
     public async UniTask<ChoiceResult> SetImagesAndWaitForChoice(StimuliPair pair)

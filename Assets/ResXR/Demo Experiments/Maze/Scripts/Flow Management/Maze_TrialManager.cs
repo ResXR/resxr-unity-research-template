@@ -21,7 +21,7 @@ public class Maze_TrialManager : ResXRSingleton<Maze_TrialManager>
         await _coin.WaitForCoinPickup();
 
         float coinPickupTime = Time.realtimeSinceStartup;
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"coin_pickup:{_currentTaskName}_t{_currentTrialIndex}",
             coinPickupTime, 0f);
 
@@ -36,7 +36,7 @@ public class Maze_TrialManager : ResXRSingleton<Maze_TrialManager>
         InitReferences();
 
         _trialStartTime = Time.realtimeSinceStartup;
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"trial_start:{_currentTaskName}_t{_currentTrialIndex}",
             _trialStartTime, 0f);
     }
@@ -46,13 +46,13 @@ public class Maze_TrialManager : ResXRSingleton<Maze_TrialManager>
     {
         string trialName = $"{_currentTaskName}_t{_currentTrialIndex}";
 
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"trial_end:{trialName}",
             endTime, 0f);
 
         // Generic trial structure row (shared schema across all demos)
-        ResXRDataManager_V2.Instance.LogCustom(new TrialsData(
-            ResXRDataManager_V2.Instance.SessionTime,
+        ResXRDataManager.Instance.LogCustom(new TrialsData(
+            ResXRDataManager.Instance.SessionTime,
             _currentTaskName,
             _currentTrialIndex.ToString(),
             trialName,
@@ -65,8 +65,8 @@ public class Maze_TrialManager : ResXRSingleton<Maze_TrialManager>
         Vector3 coinPos = Maze_SceneReferencer.Instance.coin.transform.position;
         Vector3 startZonePos = Maze_SceneReferencer.Instance.startingPositionMark.transform.position;
 
-        ResXRDataManager_V2.Instance.LogCustom(new MazeTrialData(
-            ResXRDataManager_V2.Instance.SessionTime,
+        ResXRDataManager.Instance.LogCustom(new MazeTrialData(
+            ResXRDataManager.Instance.SessionTime,
             _currentTaskName,
             _currentTrialIndex,
             trialName,

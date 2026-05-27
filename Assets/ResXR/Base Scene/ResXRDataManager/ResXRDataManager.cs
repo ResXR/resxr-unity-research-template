@@ -121,7 +121,7 @@ namespace ResXRData
     #endregion
 
 
-    public sealed class ResXRDataManager_V2 : ResXRSingleton<ResXRDataManager_V2>
+    public sealed class ResXRDataManager : ResXRSingleton<ResXRDataManager>
     {
         #region fields and properties
 

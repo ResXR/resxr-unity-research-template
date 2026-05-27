@@ -7,7 +7,7 @@ public class ImagesRating : MonoBehaviour
 {
     [SerializeField] private InstructionsPanel ratingPanel;
     [SerializeField] private Slider ratingSlider;
-    [SerializeField] SpriteRenderer[] imagesToRate;
+    [SerializeField] private SpriteRenderer[] imagesToRate;
     private int currentImageIndex = 0;
 
     private void Awake()
@@ -23,7 +23,7 @@ public class ImagesRating : MonoBehaviour
     /// </summary>
     public void LogSliderConfig()
     {
-        ResXRDataManager_V2.Instance.LogCustom(new SliderConfigRow(
+        ResXRDataManager.Instance.LogCustom(new SliderConfigRow(
             ratingSlider.MinValue,
             ratingSlider.MaxValue,
             ratingSlider.NumOfIntervals,
@@ -63,13 +63,13 @@ public class ImagesRating : MonoBehaviour
         ratingSlider.gameObject.SetActive(false);
 
         // image_displayed: single event with duration = deliberation time
-        ResXRDataManager_V2.Instance.ReportEvent(
+        ResXRDataManager.Instance.ReportEvent(
             $"image_displayed:{imageName}",
             presentationStart,
             confirmTime - presentationStart);
 
         // Per-image rating row
-        ResXRDataManager_V2.Instance.LogCustom(new ImageRatingRow(
+        ResXRDataManager.Instance.LogCustom(new ImageRatingRow(
             taskName,
             trialIndex,
             imageName,

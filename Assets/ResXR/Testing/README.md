@@ -267,7 +267,7 @@ Expected if Theory 2:
 ## See Also
 
 - `data_sources_README.txt` - Full documentation of all data sources and coordinate spaces
-- ResXRDataManager_V2 - Production data logging system
+- ResXRDataManager - Production data logging system
 
 ## License
 

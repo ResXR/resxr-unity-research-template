@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 399961699724422706}
   - component: {fileID: 3218453330121799869}
   m_Layer: 0
-  m_Name: ResXR_DataManager_V2
+  m_Name: ResXR_DataManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
