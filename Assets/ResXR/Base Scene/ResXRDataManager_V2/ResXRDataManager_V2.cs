@@ -96,7 +96,7 @@ namespace ResXRData
     }
 
     /// <summary>
-    /// One row in Events.csv — a timeline of named markers with onset and duration.
+    /// One row in events.csv — a timeline of named markers with onset and duration.
     /// Use Time.realtimeSinceStartup for onset so it aligns with the continuous CSV clock.
     /// Use duration = 0 for point events (things that happen in an instant).
     /// Use a real duration for stimulus/window events (emit the row at the END with duration = end - start).
@@ -104,7 +104,7 @@ namespace ResXRData
     /// </summary>
     public class ReportEvent : CustomDataClass
     {
-        public string TableName => "Events";
+        public string TableName => "events";
 
         public string name;    // Event label, e.g. "trial_start:task1_t0" or "stimulus:task1_t3"
         public float onset;    // Time.realtimeSinceStartup when the event started
