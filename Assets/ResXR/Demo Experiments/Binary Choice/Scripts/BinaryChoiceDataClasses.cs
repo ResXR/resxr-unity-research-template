@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // For how data classes work, see the "custom data classes" region in
-// ResXRDataManager_V2.cs — it has the full explanation and examples.
+// ResXRDataManager.cs — it has the full explanation and examples.
 //
 // Option A — Dedicated file like this one.
 //            Recommended when your experiment has multiple tables, or when
@@ -14,9 +14,9 @@
 //            Keep classes in the ResXRData namespace so any script can reach
 //            them with a single "using ResXRData;" line.
 //
-// Option B — The "custom data classes" region inside ResXRDataManager_V2.cs.
+// Option B — The "custom data classes" region inside ResXRDataManager.cs.
 //            Good for tables that are truly universal across experiments
-//            (like TrialsData and ReportEvent, which are already there).
+//            (like TrialsData and events, which are already there).
 //
 // The demo experiments use dedicated files (Option A) so definitions are easy
 // to find and not buried inside flow managers.
@@ -30,13 +30,13 @@ namespace ResXRData
     /// <summary>
     /// One row per trial. Written by BinaryChoice_TrialManager.EndTrial() after LogChoice().
     /// Records which stimuli were shown, which was chosen, and timing information.
-    /// The convenience method ResXRDataManager_V2.Instance.LogChoice(...) creates this row for you.
+    /// The convenience method ResXRDataManager.Instance.LogChoice(...) creates this row for you.
     /// </summary>
-    public class ChoiceEvent : CustomDataClass
+    public class ChoiceEvents : CustomDataClass
     {
-        public string TableName => "ChoiceEvents";
+        public float onset    { get; }   // Time.realtimeSinceStartup at the moment the choice was made
+        public float duration { get; }   // 0f — instantaneous event
 
-        public float TimeSinceStart;  // Time.realtimeSinceStartup at the moment the choice was made
         public string Task;
         public int Trial;
         public string OptionAName;    // Name of the sprite shown on slot A
@@ -48,10 +48,11 @@ namespace ResXRData
         public float displayTime;     // Time.realtimeSinceStartup when stimuli appeared
         public float ChoiceTime;      // Time.realtimeSinceStartup when choice was registered
 
-        public ChoiceEvent(string task, int trial, string optionAName, string optionBName, string choice,
+        public ChoiceEvents(string task, int trial, string optionAName, string optionBName, string choice,
             string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
         {
-            this.TimeSinceStart = Time.realtimeSinceStartup;
+            this.onset = Time.realtimeSinceStartup;
+            this.duration = 0f;
             this.Task = task;
             this.Trial = trial;
             this.OptionAName = optionAName;
@@ -73,9 +74,9 @@ namespace ResXRData
     /// </summary>
     public class StimulusBounds : CustomDataClass
     {
-        public string TableName => "StimulusBounds";
+        public float onset    { get; }   // Time.realtimeSinceStartup when bounds were logged
+        public float duration { get; }   // 0f — configuration snapshot, not a timed event
 
-        public float TimeSinceStart;
         public string ChoiceId;          // "A" or "B" — matches ChosenOption in ChoiceEvents
         // Renderer bounds (visual area of the stimulus quad)
         public float RendererCenterX;
@@ -98,7 +99,8 @@ namespace ResXRData
             float colliderCenterX, float colliderCenterY, float colliderCenterZ,
             float colliderSizeX, float colliderSizeY, float colliderSizeZ)
         {
-            TimeSinceStart = timeSinceStart;
+            this.onset = timeSinceStart;
+            this.duration = 0f;
             ChoiceId = choiceId;
             RendererCenterX = rendererCenterX;
             RendererCenterY = rendererCenterY;

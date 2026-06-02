@@ -3,12 +3,15 @@
 // Coin position and start zone are recorded per-trial (future-proof: move the coin later).
 //
 // ── For new developers ────────────────────────────────────────────────────────
-// Each class here becomes one CSV file. Each public field = one column.
+// Each class here becomes one CSV file named after the class — e.g. MazeTrialData
+// produces {sessionTime}_MazeTrialData.csv. Each public field = one column.
+// Every row automatically starts with onset and duration columns (required by the
+// CustomDataClass interface) before any of your own fields.
 // To add a new table, add a new class that implements CustomDataClass.
-// To log data, add a reporter method to ResXRDataManager_V2 (see LogChoice or
+// To log data, add a reporter method to ResXRDataManager (see LogChoice or
 // LogLineToFile there for examples), then call it from your flow scripts.
 // For the full explanation of how data classes work, see the
-// "custom data classes" region at the top of ResXRDataManager_V2.cs.
+// "custom data classes" region at the top of ResXRDataManager.cs.
 // ─────────────────────────────────────────────────────────────────────────────
 
 using ResXRData;
@@ -23,15 +26,13 @@ namespace ResXRData
     /// </summary>
     public class MazeTrialData : CustomDataClass
     {
-        public string TableName => "MazeTrials";
+        public float onset    { get; }   // Time.realtimeSinceStartup at trial start
+        public float duration { get; }   // Trial duration in seconds
 
         public string Session;
         public string Task;
         public int Trial;
         public string TrialName;
-        public float StartTime;
-        public float EndTime;
-        public float TimeToCoin;
         public bool MazeRotatedAtStart;
         public float CoinX;
         public float CoinY;
@@ -44,13 +45,12 @@ namespace ResXRData
             float startTime, float endTime, bool mazeRotatedAtStart,
             Vector3 coinPos, Vector3 startZonePos)
         {
+            onset = startTime;
+            duration = endTime - startTime;
             Session = session;
             Task = task;
             Trial = trial;
             TrialName = trialName;
-            StartTime = startTime;
-            EndTime = endTime;
-            TimeToCoin = endTime - startTime;
             MazeRotatedAtStart = mazeRotatedAtStart;
             CoinX = coinPos.x;
             CoinY = coinPos.y;

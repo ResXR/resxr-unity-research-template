@@ -19,22 +19,24 @@ namespace ResXRData
     // HOW DATA CLASSES WORK IN RESXR  (read this once — it applies everywhere)
     // ─────────────────────────────────────────────────────────────────────────
     //
-    // A "data class" is a plain C# class with public fields. Each field becomes
-    // one column in a CSV file. The only requirements are:
+    // A "data class" is a plain C# class with public fields. The only requirements are:
     //   1. Implement the CustomDataClass interface:
-    //          public string TableName => "YourTableName";
+    //          public float onset    { get; }   // set in constructor
+    //          public float duration { get; }   // set in constructor
     //   2. Store data in PUBLIC FIELDS (not properties).
-    //      Field declaration order = column order in the CSV.
+    //      Field declaration order = column order in the CSV (after onset/duration).
     //
     // ResXR automatically:
-    //   • Creates {sessionTime}_{TableName}.csv on the first write
-    //   • Writes the header row from your field names
+    //   • Creates {sessionTime}_{ClassName}.csv on the first write — the CSV is named
+    //     after the C# class, e.g. ChoiceEvents produces {sessionTime}_ChoiceEvents.csv.
+    //     Name your class to describe what it records; no TableName property is needed.
+    //   • Writes the header row: onset, duration, then your field names
     //   • Writes one data row per call
     //   • Flushes to disk immediately — crash-safe
     //
     // The recommended pattern is to wrap LogCustom in a named reporter method,
     // the same way LogLineToFile() wraps ResXRLogs here in this file, or the way
-    // LogChoice() wraps ChoiceEvent for the Binary Choice demo.
+    // LogChoice() wraps ChoiceEvents for the Binary Choice demo.
     // That keeps your flow scripts clean — one readable call instead of
     // "new MyClass(...)" scattered everywhere.
     //
@@ -44,25 +46,28 @@ namespace ResXRData
     //     when your experiment has many tables (see BinaryChoiceDataClasses.cs).
     //
     // Demo-specific tables already defined:
-    //   BinaryChoiceDataClasses.cs  →  ChoiceEvent, StimulusBounds
+    //   BinaryChoiceDataClasses.cs  →  ChoiceEvents, StimulusBounds
     //   MazeDataClasses.cs          →  MazeTrialData
-    //   MuseumDataClasses.cs        →  ImageRatingRow, SliderConfigRow, ArtworkBoundsRow
+    //   MuseumDataClasses.cs        →  ImageRatings, SliderConfig, ArtworkBounds
     // ─────────────────────────────────────────────────────────────────────────
     #region custom data classes definitions
 
     /// <summary>
-    /// Internal framework log. Written by LogLineToFile(string) — a quick way
-    /// to append a human-readable note to ResXRLogs.csv from anywhere in your code.
+    /// Append a timestamped text note to ResXRLogs.csv from anywhere in your code.
+    /// Handy for quick debugging during device builds when you can't use the Unity console —
+    /// drop a LogLineToFile call anywhere and inspect the CSV after the run.
     /// </summary>
     public class ResXRLogs : CustomDataClass
     {
-        public string TableName => "ResXRLogs";
+        public float onset    { get; }   // Time.realtimeSinceStartup when the note was written
+        public float duration { get; }   // 0f — instantaneous log entry
 
-        public float timeSinceStartup;
         public string message;
+
         public ResXRLogs(float t, string msg)
         {
-            timeSinceStartup = t;
+            onset = t;
+            duration = 0f;
             message = msg;
         }
     }
@@ -76,22 +81,22 @@ namespace ResXRData
     /// </summary>
     public class TrialsData : CustomDataClass
     {
-        public string TableName => "TrialsData";
+        public float onset    { get; }   // Time.realtimeSinceStartup at trial start
+        public float duration { get; }   // Trial duration in seconds
+
         public string Session;    // SessionTime string (yyyy.MM.dd_HH-mm) — links to session_metadata.json
         public string Task;       // Task name or index
         public string Trial;      // Trial index within the task (can be changed to int if needed)
         public string TrialName;  // Human-readable unique name, e.g. "maze_t0_t3"
-        public float StartTime;   // Time.realtimeSinceStartup at trial start
-        public float EndTime;     // Time.realtimeSinceStartup at trial end
 
         public TrialsData(string session, string task, string trial, string trialName, float startTime, float endTime)
         {
+            onset = startTime;
+            duration = endTime - startTime;
             Session = session;
             Task = task;
             Trial = trial;
             TrialName = trialName;
-            StartTime = startTime;
-            EndTime = endTime;
         }
     }
 
@@ -102,19 +107,18 @@ namespace ResXRData
     /// Use a real duration for stimulus/window events (emit the row at the END with duration = end - start).
     /// Written by ResXRDataManager_V2.Instance.ReportEvent(...) — see that method below.
     /// </summary>
-    public class ReportEvent : CustomDataClass
+    public class events : CustomDataClass
     {
-        public string TableName => "events";
+        public float onset    { get; }   // Time.realtimeSinceStartup when the event started
+        public float duration { get; }   // Duration in seconds; 0 for point events
 
         public string name;    // Event label, e.g. "trial_start:task1_t0" or "stimulus:task1_t3"
-        public float onset;    // Time.realtimeSinceStartup when the event started
-        public float duration; // Duration in seconds; 0 for point events
 
-        public ReportEvent(string name, float onset, float duration)
+        public events(string name, float onset, float duration)
         {
-            this.name = name;
             this.onset = onset;
             this.duration = duration;
+            this.name = name;
         }
     }
 
@@ -177,8 +181,9 @@ namespace ResXRData
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Quick text log. Appends one row to ResXRLogs.csv with a timestamp and your message.
-        /// Useful for ad-hoc notes during development ("participant pressed wrong button", etc.).
+        /// Appends a timestamped text note to ResXRLogs.csv.
+        /// Particularly useful for debugging during device builds where the Unity console is
+        /// unavailable — drop a LogLineToFile call anywhere and inspect the CSV after the run.
         /// For structured event data, prefer ReportEvent or LogCustom instead.
         /// </summary>
         public void LogLineToFile(string line)
@@ -210,7 +215,7 @@ namespace ResXRData
         /// </summary>
         public void ReportEvent(string name, float onset, float duration)
         {
-            LogCustom(new ReportEvent(name, onset, duration));
+            LogCustom(new events(name, onset, duration));
         }
 
         // ── LogChoice ──────────────────────────────────────────────────────────
@@ -220,7 +225,7 @@ namespace ResXRData
         public void LogChoice(string task, int trial, string optionAName, string optionBName, string choice,
             string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
         {
-            var choiceEvent = new ChoiceEvent(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
+            var choiceEvent = new ChoiceEvents(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
             LogCustom(choiceEvent);
         }
 

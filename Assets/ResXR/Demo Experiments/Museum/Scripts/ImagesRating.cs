@@ -23,7 +23,7 @@ public class ImagesRating : MonoBehaviour
     /// </summary>
     public void LogSliderConfig()
     {
-        ResXRDataManager.Instance.LogCustom(new SliderConfigRow(
+        ResXRDataManager.Instance.LogCustom(new SliderConfig(
             ratingSlider.MinValue,
             ratingSlider.MaxValue,
             ratingSlider.NumOfIntervals,
@@ -69,7 +69,7 @@ public class ImagesRating : MonoBehaviour
             confirmTime - presentationStart);
 
         // Per-image rating row
-        ResXRDataManager.Instance.LogCustom(new ImageRatingRow(
+        ResXRDataManager.Instance.LogCustom(new ImageRatings(
             taskName,
             trialIndex,
             imageName,

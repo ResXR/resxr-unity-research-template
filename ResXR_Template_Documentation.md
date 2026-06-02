@@ -666,28 +666,33 @@ ResXRDataManager.Instance.ReportEvent("stimulus_onset", Time.realtimeSinceStartu
 You can also add your own types implementing `CustomDataClass` (see `ChoiceEvent`, `StimulusBounds`, etc. in `ResXRDataManager.cs`).
 
 **Guidelines**:
-- Must implement `CustomDataClass` interface
-- Must have `TableName` property (read-only string)
-- Use public fields (not properties) for data columns
-- Always prefer `Time.realtimeSinceStartup` for time fields so they align with continuous data
-- Add a constructor to set default values
+- Must implement `CustomDataClass` interface — requires `onset { get; }` and `duration { get; }` properties set in the constructor
+- The CSV filename is taken from the C# class name — a class called `ChoiceEvents` produces `{sessionTime}_ChoiceEvents.csv`. No `TableName` property is needed; just name the class to describe what it records
+- Use public fields (not properties) for data columns — they appear after `onset` and `duration`
+- Always use `Time.realtimeSinceStartup` for `onset` so it aligns with the continuous data clock
 - Optionally annotate fields with `[ColumnInfo(description, units, levels)]` for BIDS sidecar metadata — undecorated fields still appear in the CSV but will have no entry in the generated `*_columns.json`. Use `levels` for categorical fields with a pipe-separated string (e.g. `"A|B"`, `"left|right|both"`):
 
 ```csharp
 using ResXRData;
 
-public class ChoiceEvent : CustomDataClass
+public class ChoiceEvents : CustomDataClass
 {
-    public string TableName => "ChoiceEvents";
-
-    [ColumnInfo("Seconds since app start", units: "s")]
-    public float TimeSinceStart;
+    public float onset    { get; }   // Time.realtimeSinceStartup at choice
+    public float duration { get; }   // 0f — instantaneous event
 
     [ColumnInfo("Name of the chosen image")]
     public string Choice;
 
     [ColumnInfo("Which option slot was chosen", levels: "A|B")]
     public string ChosenOption;
+
+    public ChoiceEvents(string choice, string chosenOption)
+    {
+        onset = Time.realtimeSinceStartup;
+        duration = 0f;
+        Choice = choice;
+        ChosenOption = chosenOption;
+    }
 }
 ```
 
@@ -698,13 +703,13 @@ Add helper functions in `ResXRDataManager.cs` to log your events, or call `LogCu
 ```csharp
 public void ReportEvent(string name, float onset, float duration)
 {
-    LogCustom(new ReportEvent(name, onset, duration));
+    LogCustom(new events(name, onset, duration));
 }
 
 public void LogChoice(string task, int trial, string optionAName, string optionBName, string choice,
     string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
 {
-    var choiceEvent = new ChoiceEvent(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
+    var choiceEvent = new ChoiceEvents(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
     LogCustom(choiceEvent);
 }
 ```

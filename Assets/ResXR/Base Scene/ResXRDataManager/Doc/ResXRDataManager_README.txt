@@ -34,9 +34,12 @@ Recording options (inspector):
 -----------------------------------------------------
 
 - **Custom data classes (events)**
-  Implement `CustomDataClass` with a read-only `TableName` property and public fields for CSV columns
-  (see CustomCsvFromDataClass.cs). Add a constructor to set values.
-  It is recommended to use `Time.realtimeSinceStartup` for time fields so they align with ContinuousData.
+  Implement `CustomDataClass` with `onset { get; }` and `duration { get; }` properties plus public
+  fields for your CSV columns (see CustomCsvFromDataClass.cs). Add a constructor that sets all values.
+  The CSV is named after the C# class — a class called `ChoiceEvents` produces
+  `{sessionTime}_ChoiceEvents.csv`. Name your class to describe what it records; no `TableName`
+  property is needed.
+  Always use `Time.realtimeSinceStartup` for `onset` so it aligns with ContinuousData.
 
   Optionally annotate fields with [ColumnInfo] for BIDS sidecar metadata:
       [ColumnInfo("Seconds since app start", units: "s")]
@@ -56,11 +59,11 @@ Recording options (inspector):
   - Log from code:
       ResXRDataManager.Instance.ReportEvent("trial_start", Time.realtimeSinceStartup, 0f);
 
-  Example (matches the template’s ChoiceEvent shape):
-      public class ChoiceEvent : CustomDataClass
+  Example (matches the template’s ChoiceEvents shape):
+      public class ChoiceEvents : CustomDataClass
       {
-          public string TableName => "ChoiceEvents";
-          public float TimeSinceStart;
+          public float onset    { get; }   // Time.realtimeSinceStartup at choice
+          public float duration { get; }   // 0f — instantaneous event
           public string Task;
           public int Trial;
           public string OptionAName;
@@ -68,9 +71,10 @@ Recording options (inspector):
           public string Choice;
           // ... other fields ...
 
-          public ChoiceEvent(...)
+          public ChoiceEvents(...)
           {
-              TimeSinceStart = Time.realtimeSinceStartup;
+              onset = Time.realtimeSinceStartup;
+              duration = 0f;
               // ...
           }
       }
@@ -206,11 +210,11 @@ Q: Where do I find which columns are in the CSV?
 A: See data_sources_README.txt for ContinuousData and 
    FaceExpressions. Custom tables use your class fields.
 
-Q: How do I add a new event table?  
-A: Create a new data class that implements CustomDataClass
-   with a TableName property and public fields,
-   then add a reporter function that instantiates it
-   and calls LogCustom(...) (or CustomCsvFromDataClass.Write(...)).
+Q: How do I add a new event table?
+A: Create a new class that implements CustomDataClass with onset and duration
+   properties plus your public fields. The CSV file is named after the class
+   automatically. Add a reporter function that instantiates it and calls
+   LogCustom(...) (or CustomCsvFromDataClass.Write(...)).
 
 Q: Will missing values appear as zeros?  
 A: No. Empty cells are left blank in CSV (meaning:

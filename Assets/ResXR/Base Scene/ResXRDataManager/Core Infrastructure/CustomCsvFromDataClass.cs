@@ -1,15 +1,23 @@
 // CustomCsvFromDataClass.cs
 // Writes a custom "data class" (that implements CustomDataClass) directly to its own CSV.
+//
+// The CSV filename is derived from the C# class name — for example, a class named
+// ChoiceEvents produces {sessionTime}_ChoiceEvents.csv. Name your class to describe
+// what it records; no TableName property is needed.
+//
+// Every CSV automatically starts with "onset" and "duration" columns (required by the
+// CustomDataClass interface), followed by all public fields declared in your class.
+//
 // Assumptions:
-//  - The class implements `ResXRData.CustomDataClass` with a read-only string TableName { get; }.
-//  - All other PUBLIC FIELDS (not properties) become columns (properties are ignored).
-//  - Researchers typically add fields like TimeSinceStart, Trial, etc.
+//  - The class implements `ResXRData.CustomDataClass` (onset and duration properties).
+//  - All PUBLIC FIELDS (not properties) become the remaining columns (properties are ignored).
+//  - Researchers typically add fields like Task, Trial, etc.
 //
 // Usage (once on startup):
 //   CustomCsvFromDataClass.Initialize(outputDirectory, ",");
 //
 // Usage (per event):
-//   ChoiceEvent e = new ChoiceEvent(...);   // implements CustomDataClass
+//   ChoiceEvents e = new ChoiceEvents(...);   // implements CustomDataClass
 //   CustomCsvFromDataClass.Write(e);
 //
 // Shutdown (optional):
@@ -26,10 +34,12 @@ using System.Text;
 namespace ResXRData
 {
     // Marker interface required for custom event rows.
-    // Keep it minimal for researchers: only TableName is mandatory.
+    // Implement onset and duration in every custom data class; the framework
+    // always writes them as the first two columns of every custom CSV.
     public interface CustomDataClass
     {
-        string TableName { get; }
+        float onset    { get; }   // Time.realtimeSinceStartup when the row was logged
+        float duration { get; }   // 0f for instantaneous events; seconds for windowed events
     }
 
     public static class CustomCsvFromDataClass
@@ -71,21 +81,20 @@ namespace ResXRData
             if (dataInstance == null)
                 throw new ArgumentNullException(nameof(dataInstance));
 
-            string tableName = dataInstance.TableName;
-            if (string.IsNullOrWhiteSpace(tableName))
-                throw new ArgumentException("TableName cannot be null or empty.", nameof(dataInstance));
-
             Type dataType = dataInstance.GetType();
+            string tableName = dataType.Name;  // CSV filename = class name (e.g. ChoiceEvents → ChoiceEvents.csv)
 
             // Ensure table is initialized (writer + schema + field order)
             EnsureTableInitialized(tableName, dataType);
 
-            // Build a row in the same order as the header/schema
+            // Build a row: onset + duration first (from interface), then payload fields
             FieldInfo[] fields = _fieldsByTable[tableName];
-            object[] values = new object[fields.Length];
+            object[] values = new object[fields.Length + 2];
+            values[0] = dataInstance.onset;
+            values[1] = dataInstance.duration;
             for (int i = 0; i < fields.Length; i++)
             {
-                values[i] = fields[i].GetValue(dataInstance);
+                values[i + 2] = fields[i].GetValue(dataInstance);
             }
 
             BitArray columnIsSetMask = new BitArray(values.Length, true);
@@ -121,7 +130,7 @@ namespace ResXRData
             _definingTypeByTable.Clear();
         }
 
-        // Create writer + schema for <base>/(<prefix>_)?<TableName>.csv if not yet created.
+        // Create writer + schema for <base>/(<prefix>_)?<ClassName>.csv if not yet created.
         private static void EnsureTableInitialized(string tableName, Type dataType)
         {
             if (_writerByTable.ContainsKey(tableName))
@@ -139,12 +148,12 @@ namespace ResXRData
                 return;
             }
 
-            // Build schema from public fields (excluding properties and TableName)
+            // Build schema: onset and duration always come first, then payload fields.
             FieldInfo[] payloadFields = GetPayloadFields(dataType);
-            if (payloadFields.Length == 0)
-                throw new ArgumentException($"Custom data class '{dataType.Name}' defines no public fields (other than TableName).");
 
             ColumnIndex schema = new ColumnIndex();
+            schema.Add("onset");
+            schema.Add("duration");
             for (int i = 0; i < payloadFields.Length; i++)
             {
                 string fieldName = payloadFields[i].Name;
@@ -165,18 +174,13 @@ namespace ResXRData
             _definingTypeByTable[tableName] = dataType;
         }
 
-        // Get all PUBLIC instance fields except "TableName", in a deterministic order.
+        // Returns all public instance fields in declaration order (MetadataToken).
+        // onset and duration come from the interface and are written separately — not included here.
         private static FieldInfo[] GetPayloadFields(Type dataType)
         {
-            FieldInfo[] allPublicFields =
-                dataType.GetFields(BindingFlags.Public | BindingFlags.Instance);
-
-            FieldInfo[] payloadFields = allPublicFields
-                .Where(f => !string.Equals(f.Name, "TableName", StringComparison.Ordinal))
-                .OrderBy(f => f.MetadataToken) // stable order in practice for Unity/Mono
+            return dataType.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                .OrderBy(f => f.MetadataToken) // stable declaration order in Unity/Mono
                 .ToArray();
-
-            return payloadFields;
         }
 
         // Compare two field arrays by name sequence

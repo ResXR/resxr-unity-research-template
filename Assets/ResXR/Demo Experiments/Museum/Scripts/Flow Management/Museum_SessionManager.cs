@@ -59,7 +59,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
     }
 
     /// <summary>
-    /// Writes one ArtworkBoundsRow per artwork assigned in Museum_SceneReferencer.
+    /// Writes one ArtworkBounds row per artwork assigned in Museum_SceneReferencer.
     /// artworks and artworkColliders must be the same length and in the same order.
     /// Call once at session start. Wire up both arrays in the Inspector before building.
     /// </summary>
@@ -86,7 +86,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
         {
             if (artworks[i] == null) { Debug.LogError($"[Museum_SessionManager] artworks[{i}] is null — skipping."); continue; }
             if (colliders[i] == null) { Debug.LogError($"[Museum_SessionManager] artworkColliders[{i}] is null — skipping."); continue; }
-            ResXRDataManager.Instance.LogCustom(new ArtworkBoundsRow(t, artworks[i], colliders[i]));
+            ResXRDataManager.Instance.LogCustom(new ArtworkBounds(t, artworks[i], colliders[i]));
             logged++;
         }
 

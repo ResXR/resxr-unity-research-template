@@ -101,7 +101,7 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
     private async UniTask RunImagesRating()
     {
         // Show image and collect rating. Task name and trial index are passed through so
-        // ImagesRating can write the ImageRatingRow with full context.
+        // ImagesRating can write the ImageRatings row with full context.
         await Museum_SceneReferencer.Instance.imagesRating
             .ShowNextImageAndWaitForRank(_currentTaskName, _currentTrialIndex);
 
