@@ -17,6 +17,14 @@ namespace ResXRData
         private readonly string _delimiter;
         private bool _headerWritten;
 
+        /// <summary>
+        /// Number of data rows successfully flushed to disk since this writer was created.
+        /// The header row is not included. Incremented after each <see cref="WriteRow"/> call
+        /// once <c>Flush()</c> completes. Intended for session-end reporting only — never
+        /// written to any CSV file.
+        /// </summary>
+        public int RowCount { get; private set; }
+
         public CsvRowWriter(string filePath, string delimiter = ",", Encoding encoding = null, bool append = false)
         {
             if (string.IsNullOrWhiteSpace(filePath))
@@ -55,6 +63,7 @@ namespace ResXRData
 
             _writer.WriteLine();
             _writer.Flush();
+            RowCount++;
         }
 
         private void WriteHeader(ColumnIndex schema)
