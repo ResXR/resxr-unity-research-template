@@ -671,6 +671,25 @@ You can also add your own types implementing `CustomDataClass` (see `ChoiceEvent
 - Use public fields (not properties) for data columns
 - Always prefer `Time.realtimeSinceStartup` for time fields so they align with continuous data
 - Add a constructor to set default values
+- Optionally annotate fields with `[ColumnInfo(description, units, levels)]` for BIDS sidecar metadata — undecorated fields still appear in the CSV but will have no entry in the generated `*_columns.json`. Use `levels` for categorical fields with a pipe-separated string (e.g. `"A|B"`, `"left|right|both"`):
+
+```csharp
+using ResXRData;
+
+public class ChoiceEvent : CustomDataClass
+{
+    public string TableName => "ChoiceEvents";
+
+    [ColumnInfo("Seconds since app start", units: "s")]
+    public float TimeSinceStart;
+
+    [ColumnInfo("Name of the chosen image")]
+    public string Choice;
+
+    [ColumnInfo("Which option slot was chosen", levels: "A|B")]
+    public string ChosenOption;
+}
+```
 
 ##### 2. Reporter Functions
 
@@ -725,6 +744,7 @@ Collectors pull data from the VR system every physics tick and write to CSV file
 - **RowBuffer.cs** - Staging area for one row of data
 - **CsvRowWriter.cs** - Writes CSV files (header + rows)
 - **CustomCsvFromDataClass.cs** - Automatic CSV generation from data classes
+- **ColumnInfoAttribute.cs** - Optional field attribute for BIDS sidecar metadata (`[ColumnInfo]`)
 
 ##### Metadata
 

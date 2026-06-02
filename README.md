@@ -85,6 +85,7 @@ Assets/ResXR/
 - **Automatic Continuous Data**: Head, hands, eyes, body, face tracking at 50Hz
 - **Gaze**: Combined (cyclopean) gaze hit point and focused object always recorded when eye tracking is on. Optional **per-eye** hit points and focused objects (left/right) via the "Include Separate Eyes Gaze" recording option—enables 3 raycasts per frame instead of 1; turn off in heavy scenes to save performance.
 - **Custom Event Logging**: Create custom data classes for experiment-specific events
+- **BIDS Column Metadata**: Annotate custom data class fields with `[ColumnInfo]` to provide descriptions, units, and categorical levels — consumed by the Python pipeline to generate `*_columns.json` sidecar files
 - **Events table** (`Events.csv`): Template provides `ReportEvent` rows with `name`, `onset`, and `duration` (seconds). Use `Time.realtimeSinceStartup` for `onset` to match continuous data and downstream pipelines; call `ResXRDataManager.Instance.ReportEvent(...)`.
 - **CSV Export**: All data exported to organized CSV files
 - **Metadata**: Automatic session metadata generation (supports later Motion-BIDS export; includes device offset, tracking origin, reference frames; `build_info_available` flags whether build provenance fields are present, otherwise they are left empty)

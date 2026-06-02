@@ -38,6 +38,17 @@ Recording options (inspector):
   (see CustomCsvFromDataClass.cs). Add a constructor to set values.
   It is recommended to use `Time.realtimeSinceStartup` for time fields so they align with ContinuousData.
 
+  Optionally annotate fields with [ColumnInfo] for BIDS sidecar metadata:
+      [ColumnInfo("Seconds since app start", units: "s")]
+      public float TimeSinceStart;
+
+      [ColumnInfo("Which option slot was chosen", levels: "A|B")]
+      public string ChosenOption;
+
+  The Python pipeline reads these attributes via reflection to generate *_columns.json sidecar
+  files. Undecorated fields still appear in the CSV — they just produce no sidecar entry.
+  Parameters: description (required), units (default "n/a"), levels (default null, pipe-separated).
+
   Template-provided **Events** table (pipeline-friendly markers):
   - CSV: `<sessionTime>_Events.csv` with columns `name`, `onset`, `duration`.
   - Onset is expected to be `Time.realtimeSinceStartup` (seconds since app start), same clock as continuous CSVs;
