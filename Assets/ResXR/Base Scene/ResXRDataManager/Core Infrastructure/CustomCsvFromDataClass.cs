@@ -42,6 +42,30 @@ namespace ResXRData
         float duration { get; }   // 0f for instantaneous events; seconds for windowed events
     }
 
+    // Column-level metadata harvested at session end for the custom_tables sidecar.
+    // Populated from [ColumnInfo] attributes; all fields except name are null/NaN for unannotated fields.
+    public struct CustomColumnMeta
+    {
+        public string   name;
+        public bool     hasAnnotation; // true = [ColumnInfo] present; false = unannotated field
+        public string   description;   // null when unannotated; "" when [ColumnInfo("")]; BuildCustomTablesJson falls back to PrettifyFieldName(name) in both cases
+        public string   units;         // null when not set
+        public string[] levels;        // null for non-categorical columns; each element is "value:description" or "value"
+        public string   format;        // null when not set; validated against BIDS allowed values at session end
+        public double   minimum;       // double.NaN when not set
+        public double   maximum;       // double.NaN when not set
+    }
+
+    // One entry per registered custom table, returned by GetTableSummaries().
+    // Consumed by ResXRDataManager to write the custom_tables_sidecar.json file.
+    public struct CustomTableSummary
+    {
+        public string tableName;           // C# class name (e.g. "ChoiceEvents")
+        public string fileName;            // CSV filename with session prefix (e.g. "2025.09.14_15-08_ChoiceEvents.csv")
+        public int    rowCount;            // data rows written this session (header not counted)
+        public CustomColumnMeta[] columns; // onset + duration first, then payload fields in declaration order
+    }
+
     public static class CustomCsvFromDataClass
     {
         private static string _baseDirectory = ".";
@@ -128,6 +152,65 @@ namespace ResXRData
             _schemaByTable.Clear();
             _fieldsByTable.Clear();
             _definingTypeByTable.Clear();
+        }
+
+        /// <summary>
+        /// Returns a snapshot of every custom table registered in this session.
+        /// Includes column names, row counts, and any <see cref="ColumnInfoAttribute"/> metadata.
+        /// <para>
+        /// Call this <b>before</b> <see cref="CloseAll"/> — writers must still be open to read
+        /// <see cref="CsvRowWriter.RowCount"/>.
+        /// </para>
+        /// Consumed by ResXRDataManager to write <c>{sessionTime}_custom_tables_sidecar.json</c>.
+        /// </summary>
+        public static CustomTableSummary[] GetTableSummaries()
+        {
+            var result = new CustomTableSummary[_writerByTable.Count];
+            int idx = 0;
+            foreach (KeyValuePair<string, CsvRowWriter> kv in _writerByTable)
+            {
+                string tableName = kv.Key;
+                CsvRowWriter writer = kv.Value;
+                FieldInfo[] fields = _fieldsByTable[tableName];
+
+                // Reconstruct the filename exactly as EnsureTableInitialized built it.
+                string safeTable = SanitizeFileName(tableName);
+                string fileName = string.IsNullOrEmpty(_filePrefix)
+                    ? $"{safeTable}.csv"
+                    : $"{_filePrefix}_{safeTable}.csv";
+
+                // onset and duration: universal interface columns — metadata hardcoded here
+                // because there is no [ColumnInfo] on interface properties.
+                var columns = new CustomColumnMeta[fields.Length + 2];
+                columns[0] = new CustomColumnMeta { name = "onset",    hasAnnotation = false, description = "Time since app start when the event was logged", units = "s", format = "number", minimum = 0.0, maximum = double.NaN, levels = null };
+                columns[1] = new CustomColumnMeta { name = "duration", hasAnnotation = false, description = "Event duration in seconds; 0 for point events",  units = "s", format = "number", minimum = 0.0, maximum = double.NaN, levels = null };
+
+                // Payload fields: read [ColumnInfo] attribute if present (null = unannotated).
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    ColumnInfoAttribute attr = fields[i].GetCustomAttribute<ColumnInfoAttribute>();
+                    columns[i + 2] = new CustomColumnMeta
+                    {
+                        name          = fields[i].Name,
+                        hasAnnotation = attr != null,
+                        description   = attr?.Description,
+                        units         = attr?.Units,
+                        levels        = attr?.Levels,
+                        format        = attr?.Format,
+                        minimum       = attr != null ? attr.Minimum : double.NaN,
+                        maximum       = attr != null ? attr.Maximum : double.NaN,
+                    };
+                }
+
+                result[idx++] = new CustomTableSummary
+                {
+                    tableName = tableName,
+                    fileName  = fileName,
+                    rowCount  = writer.RowCount,
+                    columns   = columns
+                };
+            }
+            return result;
         }
 
         // Create writer + schema for <base>/(<prefix>_)?<ClassName>.csv if not yet created.

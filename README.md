@@ -82,14 +82,16 @@ Assets/ResXR/
 ## ✨ Key Features
 
 ### Data Collection
-- **Automatic Continuous Data**: Head, hands, eyes, body, face tracking at 50Hz
+- **Automatic Continuous Data**: Head, hands, eyes, body, face tracking at 100Hz — logged to CSV automatically with zero setup. Enable the recording options you need in the Inspector.
 - **Gaze**: Combined (cyclopean) gaze hit point and focused object always recorded when eye tracking is on. Optional **per-eye** hit points and focused objects (left/right) via the "Include Separate Eyes Gaze" recording option—enables 3 raycasts per frame instead of 1; turn off in heavy scenes to save performance.
-- **Custom Event Logging**: Create custom data classes for experiment-specific events
-- **BIDS Column Metadata**: Annotate custom data class fields with `[ColumnInfo]` to provide descriptions, units, and categorical levels — consumed by the Python pipeline to generate `*_columns.json` sidecar files
-- **Events table** (`Events.csv`): Template provides `ReportEvent` rows with `name`, `onset`, and `duration` (seconds). Use `Time.realtimeSinceStartup` for `onset` to match continuous data and downstream pipelines; call `ResXRDataManager.Instance.ReportEvent(...)`.
+- **Custom Experiment Data**: Log your own experiment-specific data — choices, reaction times, trial metadata, anything your paradigm needs. Define a simple C# class with your columns; the DataManager creates the CSV, writes the header, and appends rows automatically. No file handling required.
+- **Column Documentation (BIDS-compatible)**: Annotate each column in your data class with a one-line description (`[ColumnInfo("what this column means")]`). The template enforces documentation — missing annotations are flagged as errors at compile time in the Editor. At session end, all column descriptions are compiled into a sidecar JSON file for reproducibility and downstream pipelines.
+- **Quick Event Markers** (`Events.csv`): Log named experiment milestones — trial starts, stimulus onsets, participant responses — with a single line of code. Built on the same custom data class mechanism, with an instant reporter that requires no class setup: `ResXRDataManager.Instance.ReportEvent("trial_start", Time.realtimeSinceStartup, 0f)`
+- **On-device Debug Logging** (`ResXRLogs.csv`): Write timestamped text notes to a CSV file during a session — invaluable when debugging device builds where the Unity Console is unavailable. Call `ResXRDataManager.Instance.LogLineToFile("your note")` from anywhere. *(Viewing `Debug.Log` on device via adb logcat is always an option — `ResXRLogs` is simply a more convenient alternative that lives with your session data.)*
 - **CSV Export**: All data exported to organized CSV files
 - **Metadata**: Automatic session metadata generation (supports later Motion-BIDS export; includes device offset, tracking origin, reference frames; `build_info_available` flags whether build provenance fields are present, otherwise they are left empty)
 
+<small><font color="cornflowerblue">The companion ResXR Python pipeline reads your custom data tables and generates BIDS-compatible <code>*_events.tsv</code> files automatically — lightweight per-table CSVs on the headset, one unified events file in your converted dataset.</font></small>
 
 ### ResXRPlayer API - Easy Access to Tracking Components
 While every VR app has tracking, ResXR provides a **simple, unified API** through `ResXRPlayer` singleton that gives you easy access to all tracking components without digging through OVR internals:

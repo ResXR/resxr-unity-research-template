@@ -27,10 +27,15 @@ namespace ResXRData
         public float onset    { get; }   // Time.realtimeSinceStartup when the image appeared (presentation start)
         public float duration { get; }   // Seconds from image appearance to confirm (deliberation time)
 
+        [ColumnInfo("Task name or index")]
         public string Task;
+        [ColumnInfo("Trial index within the task", Format = "integer")]
         public int Trial;
+        [ColumnInfo("Name of the image that was rated")]
         public string ImageName;
+        [ColumnInfo("Slider value as selected by the participant", Format = "number")]
         public float RawRating;
+        [ColumnInfo("Slider value normalised to 0-1 range: (raw - min) / (max - min)", Format = "number", Minimum = 0.0, Maximum = 1.0)]
         public float NormalizedRating; // (raw - min) / (max - min)
 
         public ImageRatings(string task, int trial, string imageName,
@@ -57,9 +62,13 @@ namespace ResXRData
         public float onset    { get; }   // Time.realtimeSinceStartup when config was logged
         public float duration { get; }   // 0f — configuration snapshot, not a timed event
 
+        [ColumnInfo("Minimum value of the rating slider", Format = "number")]
         public float MinValue;
+        [ColumnInfo("Maximum value of the rating slider", Format = "number")]
         public float MaxValue;
+        [ColumnInfo("Number of discrete steps on the slider; 0 means continuous", Format = "integer", Minimum = 0.0)]
         public int NumOfIntervals;
+        [ColumnInfo("Whether the slider allows non-integer (continuous) positions", Format = "boolean")]
         public bool AllowContinuousValues;
 
         public SliderConfig(float minValue, float maxValue, int numOfIntervals, bool allowContinuous)
@@ -83,24 +92,40 @@ namespace ResXRData
         public float onset    { get; }   // Time.realtimeSinceStartup when bounds were logged
         public float duration { get; }   // 0f — configuration snapshot, not a timed event
 
+        [ColumnInfo("Name of the artwork GameObject")]
         public string ArtworkName;
         // Renderer world-space bounds (visual area)
+        [ColumnInfo("World-space X component of the renderer bounding box centre", Units = "m", Format = "number")]
         public float RendererCenterX;
+        [ColumnInfo("World-space Y component of the renderer bounding box centre", Units = "m", Format = "number")]
         public float RendererCenterY;
+        [ColumnInfo("World-space Z component of the renderer bounding box centre", Units = "m", Format = "number")]
         public float RendererCenterZ;
+        [ColumnInfo("World-space X extent of the renderer bounding box", Units = "m", Format = "number", Minimum = 0.0)]
         public float RendererSizeX;
+        [ColumnInfo("World-space Y extent of the renderer bounding box", Units = "m", Format = "number", Minimum = 0.0)]
         public float RendererSizeY;
+        [ColumnInfo("World-space Z extent of the renderer bounding box", Units = "m", Format = "number", Minimum = 0.0)]
         public float RendererSizeZ;
         // Artwork orientation (ZXY Euler, degrees — matches Unity Transform convention)
+        [ColumnInfo("ZXY Euler rotation of the artwork around the X axis", Units = "deg", Format = "number")]
         public float RotationEulerX;
+        [ColumnInfo("ZXY Euler rotation of the artwork around the Y axis", Units = "deg", Format = "number")]
         public float RotationEulerY;
+        [ColumnInfo("ZXY Euler rotation of the artwork around the Z axis", Units = "deg", Format = "number")]
         public float RotationEulerZ;
         // Collider world-space bounds (interaction area — on a dedicated collider GameObject)
+        [ColumnInfo("World-space X component of the collider bounding box centre", Units = "m", Format = "number")]
         public float ColliderCenterX;
+        [ColumnInfo("World-space Y component of the collider bounding box centre", Units = "m", Format = "number")]
         public float ColliderCenterY;
+        [ColumnInfo("World-space Z component of the collider bounding box centre", Units = "m", Format = "number")]
         public float ColliderCenterZ;
+        [ColumnInfo("World-space X extent of the collider bounding box", Units = "m", Format = "number", Minimum = 0.0)]
         public float ColliderSizeX;
+        [ColumnInfo("World-space Y extent of the collider bounding box", Units = "m", Format = "number", Minimum = 0.0)]
         public float ColliderSizeY;
+        [ColumnInfo("World-space Z extent of the collider bounding box", Units = "m", Format = "number", Minimum = 0.0)]
         public float ColliderSizeZ;
 
         public ArtworkBounds(float timeSinceStart, Renderer artwork, Collider col)

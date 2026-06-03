@@ -41,16 +41,48 @@ Recording options (inspector):
   property is needed.
   Always use `Time.realtimeSinceStartup` for `onset` so it aligns with ContinuousData.
 
-  Optionally annotate fields with [ColumnInfo] for BIDS sidecar metadata:
-      [ColumnInfo("Seconds since app start", units: "s")]
-      public float TimeSinceStart;
+  Annotate all public fields with [ColumnInfo] for BIDS sidecar metadata.
+  Signature: [ColumnInfo(description, levels..., Units = "...", Format = "...", Minimum = N, Maximum = N)]
+  description is the only required argument; all others are optional.
+  Missing [ColumnInfo] entirely or leaving description empty both log a hard error +
+  ResXRLogs entry at session end; the field name is used as a placeholder description.
 
-      [ColumnInfo("Which option slot was chosen", levels: "A|B")]
+      // Non-categorical (no levels):
+      [ColumnInfo("Name of the chosen image")]
+      public string Choice;
+
+      // Non-categorical, with units and format:
+      [ColumnInfo("Seconds from stimulus display to choice", Units = "s", Format = "number", Minimum = 0.0)]
+      public float ReactionTime;
+
+      // Categorical — one string per level as "value:description":
+      [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot")]
       public string ChosenOption;
 
-  The Python pipeline reads these attributes via reflection to generate *_columns.json sidecar
-  files. Undecorated fields still appear in the CSV — they just produce no sidecar entry.
-  Parameters: description (required), units (default "n/a"), levels (default null, pipe-separated).
+      // Categorical, value-only labels (value becomes its own description):
+      [ColumnInfo("Hand used to make the choice", "Left", "Right")]
+      public string HandUsed;
+
+      // Numeric with range bounds:
+      [ColumnInfo("Confidence score from 0 to 1", Format = "number", Minimum = 0.0, Maximum = 1.0)]
+      public float Confidence;
+
+  levels are positional params (one string per level); omit entirely for non-categorical fields.
+  Each level string is "value:description" — the description is optional (use just "value" to
+  have the value serve as its own label in the sidecar).
+  Units is an optional named property; omit for dimensionless or categorical columns.
+  Format must be one of the 18 BIDS-allowed values (an unrecognised value logs an error at session end):
+    string, number, integer, boolean, index, label, date, datetime, time, unit,
+    uri, rrid, bids_uri, dataset_relative, file_relative, participant_relative,
+    stimuli_relative, hed_version
+  Minimum and Maximum are optional double bounds; omit if not applicable.
+
+  At session end, C# reflection reads these attributes and writes them into
+  {sessionTime}_custom_tables_sidecar.json. The Python pipeline then reads that JSON to
+  generate *_events.json BIDS sidecar files.
+  Undecorated fields appear in the CSV and in the sidecar with an auto-generated placeholder
+  description (field name prettified, e.g. "ReactionTime" → "Reaction Time"). A hard error
+  is logged at session end — add [ColumnInfo("description")] to replace the placeholder.
 
   Template-provided **Events** table (pipeline-friendly markers):
   - CSV: `<sessionTime>_Events.csv` with columns `name`, `onset`, `duration`.
@@ -85,7 +117,7 @@ Recording options (inspector):
   Example:
       public void LogChoice(string task, int trial, ...)
       {
-          var choiceEvent = new ChoiceEvent(...);
+          var choiceEvent = new ChoiceEvents(...);
           LogCustom(choiceEvent);
       }
 
@@ -105,12 +137,12 @@ refer to data_sources_README.txt.
 2. METADATA
 -----------------------------------------------------
 
-Each session is accompanied by one JSON file:
+Each session is accompanied by two JSON files:
 
-- session_metadata.json  
-  Written automatically at runtime by SessionMetaWriter.cs.  
-  Designed to support later Motion-BIDS export (a Python pipeline 
-  generates the actual BIDS files; no *_scans.tsv or *_channels.json 
+- session_metadata.json
+  Written once at session start by SessionMetaWriter.cs; never modified again.
+  Designed to support later Motion-BIDS export (a Python pipeline
+  generates the actual BIDS files; no *_scans.tsv or *_channels.json
   are written at runtime).
 
   Contains:
@@ -131,6 +163,18 @@ Each session is accompanied by one JSON file:
     * build_id, git_commit, utc_build_iso8601 — only set when build_info_available
       is true. When false, these are left empty (no placeholders) so the pipeline
       can treat them as "not available".
+
+- {sessionTime}_custom_tables_sidecar.json
+  Written at session end by CustomTablesSidecarWriter.cs (before CSV files are closed).
+  Contains one entry per custom data class used during the session (e.g. ChoiceEvents,
+  TrialsData, events), listing the CSV filename, row count, and per-column metadata
+  sourced from [ColumnInfo] annotations (description, units, levels, format, min, max).
+  Consumed by the ResXR Python pipeline post-experiment to auto-generate
+  *_events.json BIDS sidecar files for each custom CSV. Because all custom tables
+  share the same onset/duration clock as ContinuousData.csv, the pipeline can also
+  merge them into a single BIDS events file.
+  Any validation errors (empty descriptions, unrecognised Format values) are written
+  to both Debug.LogError and ResXRLogs.csv before this file is written.
 
 Together, this guarantees reproducibility: you know 
 exactly which build and session produced the data and under which 
@@ -166,6 +210,13 @@ work. You don’t normally edit them.
 - CsvRowWriter.cs: writes one CSV (header + rows).
 - CustomCsvFromDataClass.cs: lets you write a custom
   data class straight to CSV automatically.
+- ColumnInfoAttribute.cs: optional [ColumnInfo] attribute
+  for BIDS sidecar metadata on custom data class fields.
+- Editor/CustomDataClassValidator.cs: [InitializeOnLoad]
+  editor script; logs a hard error in the Unity console
+  after every compile for any public field missing a
+  [ColumnInfo] annotation. Editor-only — the equivalent
+  runtime check runs in ResXRDataManager at session end.
 
 C) Collectors
 -------------
@@ -185,7 +236,10 @@ D) Metadata
   writes build_info.json, appends build id to version.
 - BuildInfoLoader.cs: loads build_info.json at runtime.
 - SessionMetaWriter.cs: writes session_metadata.json
-  when session starts.
+  once at session start (never modified again).
+- CustomTablesSidecarWriter.cs: writes
+  {sessionTime}_custom_tables_sidecar.json at session end
+  with per-table and per-column metadata for the pipeline.
 
 -----------------------------------------------------
 
@@ -224,7 +278,7 @@ Q: How often is data logged?
 A: ContinuousData.csv and FaceExpressions.csv are logged 
    once per physics tick (Unity’s FixedUpdate). The tick
    rate is set in Project Settings → Time → Fixed Timestep 
-   (default is 0.02 seconds = 50 Hz).  
+   (default is 0.01 seconds = 100 Hz).
    You can change this setting if you want a different
    logging frequency for continuous data.
 

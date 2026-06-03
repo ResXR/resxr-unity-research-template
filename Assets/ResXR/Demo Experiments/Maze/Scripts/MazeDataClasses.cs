@@ -29,16 +29,27 @@ namespace ResXRData
         public float onset    { get; }   // Time.realtimeSinceStartup at trial start
         public float duration { get; }   // Trial duration in seconds
 
+        [ColumnInfo("Session identifier (yyyy.MM.dd_HH-mm); links this row to session_metadata.json")]
         public string Session;
+        [ColumnInfo("Task name or index")]
         public string Task;
+        [ColumnInfo("Trial index within the task", Format = "integer")]
         public int Trial;
+        [ColumnInfo("Human-readable unique trial name, e.g. maze_t0_t3")]
         public string TrialName;
+        [ColumnInfo("Whether the maze orientation was randomised at trial start", Format = "boolean")]
         public bool MazeRotatedAtStart;
+        [ColumnInfo("World-space X position of the coin at trial start", Units = "m", Format = "number")]
         public float CoinX;
+        [ColumnInfo("World-space Y position of the coin at trial start", Units = "m", Format = "number")]
         public float CoinY;
+        [ColumnInfo("World-space Z position of the coin at trial start", Units = "m", Format = "number")]
         public float CoinZ;
+        [ColumnInfo("World-space X position of the starting zone at trial start", Units = "m", Format = "number")]
         public float StartZoneX;
+        [ColumnInfo("World-space Y position of the starting zone at trial start", Units = "m", Format = "number")]
         public float StartZoneY;
+        [ColumnInfo("World-space Z position of the starting zone at trial start", Units = "m", Format = "number")]
         public float StartZoneZ;
 
         public MazeTrialData(string session, string task, int trial, string trialName,

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using static OVRPlugin;
 using static ResXRData.BuildInfoLoader;
@@ -62,6 +63,7 @@ namespace ResXRData
         public float onset    { get; }   // Time.realtimeSinceStartup when the note was written
         public float duration { get; }   // 0f — instantaneous log entry
 
+        [ColumnInfo("Timestamped debug note written to file during the session")]
         public string message;
 
         public ResXRLogs(float t, string msg)
@@ -84,9 +86,13 @@ namespace ResXRData
         public float onset    { get; }   // Time.realtimeSinceStartup at trial start
         public float duration { get; }   // Trial duration in seconds
 
+        [ColumnInfo("Session identifier (yyyy.MM.dd_HH-mm); links this row to session_metadata.json")]
         public string Session;    // SessionTime string (yyyy.MM.dd_HH-mm) — links to session_metadata.json
+        [ColumnInfo("Task name or index within the session")]
         public string Task;       // Task name or index
+        [ColumnInfo("Trial index within the task")]
         public string Trial;      // Trial index within the task (can be changed to int if needed)
+        [ColumnInfo("Human-readable unique trial name, e.g. task1_t3")]
         public string TrialName;  // Human-readable unique name, e.g. "maze_t0_t3"
 
         public TrialsData(string session, string task, string trial, string trialName, float startTime, float endTime)
@@ -112,6 +118,7 @@ namespace ResXRData
         public float onset    { get; }   // Time.realtimeSinceStartup when the event started
         public float duration { get; }   // Duration in seconds; 0 for point events
 
+        [ColumnInfo("Event label identifying this marker, e.g. trial_start or stimulus_on")]
         public string name;    // Event label, e.g. "trial_start:task1_t0" or "stimulus:task1_t3"
 
         public events(string name, float onset, float duration)
@@ -401,6 +408,11 @@ namespace ResXRData
             }
             _continuousCollectors.Clear();
 
+            // Write custom_tables metadata BEFORE closing any writers:
+            // - RowCount values are still accurate
+            // - LogLineToFile can still reach ResXRLogs.csv if an error occurs
+            WriteCustomTablesMetadata();
+
             // writers
             try { _continuousWriter?.Dispose(); } catch { }
             try { _faceWriter?.Dispose(); } catch { }
@@ -611,6 +623,197 @@ namespace ResXRData
             // 4) Finally write
             SessionMetaWriter.WriteInitial(GetOutputDirectory(), SessionTime, meta);
         }
+
+        /// <summary>
+        /// Validates all [ColumnInfo] annotations and writes
+        /// <c>{sessionTime}_custom_tables_sidecar.json</c>.
+        /// Must be called before <see cref="CustomCsvFromDataClass.CloseAll"/> so that
+        /// <see cref="CsvRowWriter.RowCount"/> values are still current and
+        /// <see cref="LogLineToFile"/> can write to ResXRLogs.csv if an error occurs.
+        /// The sidecar is consumed by the ResXR Python pipeline post-experiment to
+        /// auto-generate *_events.json BIDS sidecar files and merge all custom tables
+        /// into the single BIDS events file.
+        /// </summary>
+        private void WriteCustomTablesMetadata()
+        {
+            try
+            {
+                CustomTableSummary[] summaries = CustomCsvFromDataClass.GetTableSummaries();
+                if (summaries.Length == 0) return;
+
+                // Validate [ColumnInfo] annotations and log any problems before writing.
+                ValidateColumnAnnotations(summaries);
+
+                string json = BuildCustomTablesJson(summaries);
+                CustomTablesSidecarWriter.Write(GetOutputDirectory(), sessionTime, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ResXRDataManager] WriteCustomTablesMetadata failed: {ex.Message}");
+                // Also log to ResXRLogs.csv while it is still open (CloseAll has not yet run).
+                try { LogLineToFile($"[WriteCustomTablesMetadata] ERROR: {ex.Message}"); } catch { }
+            }
+        }
+
+        // Validates every payload column's [ColumnInfo] annotation:
+        //   (a) No annotation at all      → error: field name will be used as placeholder description.
+        //   (b) Annotation with empty description → error: same placeholder fallback applies.
+        //   (c) Invalid Format value      → error: unrecognised value will be written as-is.
+        // onset and duration are skipped — they are interface columns, not annotatable by the user.
+        // Logs to Debug.LogError + ResXRLogs.csv for easy debugging on device.
+        // Called before BuildCustomTablesJson so issues surface even if the JSON build fails.
+        private void ValidateColumnAnnotations(CustomTableSummary[] summaries)
+        {
+            foreach (CustomTableSummary s in summaries)
+            {
+                foreach (CustomColumnMeta col in s.columns)
+                {
+                    // Skip interface columns — onset and duration are hardcoded, not user-annotatable.
+                    if (col.name == "onset" || col.name == "duration") continue;
+
+                    // No [ColumnInfo] at all.
+                    if (!col.hasAnnotation)
+                    {
+                        string placeholder = PrettifyFieldName(col.name);
+                        string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in custom table '{s.tableName}' has no [ColumnInfo] annotation. " +
+                                     $"The field name (\"{placeholder}\") will be used as a placeholder description in custom_tables_sidecar.json — " +
+                                     $"the Python pipeline will have no verified metadata for this field. " +
+                                     $"Add [ColumnInfo(\"description\")] to provide accurate BIDS metadata.";
+                        Debug.LogError(msg);
+                        try { LogLineToFile(msg); } catch { }
+                        continue; // no further checks needed for this column
+                    }
+
+                    // [ColumnInfo] present but description is empty.
+                    if (string.IsNullOrWhiteSpace(col.description))
+                    {
+                        string placeholder = PrettifyFieldName(col.name);
+                        string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}' has an empty [ColumnInfo] description. " +
+                                     $"The field name (\"{placeholder}\") will be used as a placeholder — " +
+                                     $"add a proper description to [ColumnInfo(\"...\")] for accurate BIDS metadata.";
+                        Debug.LogError(msg);
+                        try { LogLineToFile(msg); } catch { }
+                    }
+
+                    // Invalid Format value.
+                    if (!string.IsNullOrEmpty(col.format) && !IsValidBidsFormat(col.format))
+                    {
+                        string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}' has unrecognised Format \"{col.format}\". " +
+                                     $"Allowed values: {string.Join(", ", ColumnInfoAttribute.AllowedFormats)}.";
+                        Debug.LogError(msg);
+                        try { LogLineToFile(msg); } catch { }
+                    }
+                }
+            }
+        }
+
+        private static bool IsValidBidsFormat(string format)
+        {
+            foreach (string allowed in ColumnInfoAttribute.AllowedFormats)
+                if (string.Equals(format, allowed, StringComparison.Ordinal))
+                    return true;
+            return false;
+        }
+
+        // Builds the JSON value string for the "custom_tables" key in custom_tables_sidecar.json.
+        // { "TableName": { "file": "...", "row_count": N, "columns": { "col": { ... } } }, ... }
+        // All columns are included. When description is null or empty (unannotated field or
+        // [ColumnInfo("")]), PrettifyFieldName(col.name) is used as a placeholder.
+        private static string BuildCustomTablesJson(CustomTableSummary[] summaries)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{");
+            for (int t = 0; t < summaries.Length; t++)
+            {
+                if (t > 0) sb.Append(",");
+                CustomTableSummary s = summaries[t];
+                sb.Append($"\n    \"{EscapeJsonString(s.tableName)}\": {{");
+                sb.Append($"\n      \"file\": \"{EscapeJsonString(s.fileName)}\",");
+                sb.Append($"\n      \"row_count\": {s.rowCount},");
+                sb.Append("\n      \"columns\": {");
+                for (int c = 0; c < s.columns.Length; c++)
+                {
+                    if (c > 0) sb.Append(",");
+                    CustomColumnMeta col   = s.columns[c];
+                    string           desc  = string.IsNullOrEmpty(col.description)
+                                                ? EscapeJsonString(PrettifyFieldName(col.name))
+                                                : EscapeJsonString(col.description);
+                    string           units = string.IsNullOrEmpty(col.units) ? "n/a" : EscapeJsonString(col.units);
+                    sb.Append($"\n        \"{EscapeJsonString(col.name)}\": {{\"description\": \"{desc}\", \"units\": \"{units}\"");
+                    if (!string.IsNullOrEmpty(col.format))
+                        sb.Append($", \"Format\": \"{EscapeJsonString(col.format)}\"");
+                    if (!double.IsNaN(col.minimum))
+                        sb.Append($", \"Minimum\": {col.minimum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    if (!double.IsNaN(col.maximum))
+                        sb.Append($", \"Maximum\": {col.maximum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    if (col.levels != null && col.levels.Length > 0)
+                        sb.Append($", \"Levels\": {BuildLevelsJson(col.levels)}");
+                    sb.Append("}");
+                }
+                sb.Append("\n      }");
+                sb.Append("\n    }");
+            }
+            sb.Append("\n  }");
+            return sb.ToString();
+        }
+
+        // Converts a camelCase or PascalCase field name to a human-readable string.
+        // Inserts a space before a capital letter that follows a lowercase letter,
+        // or before a capital that starts a new word after a run of capitals.
+        // Underscores become spaces. First character is always capitalised.
+        // Examples: "ReactionTime" → "Reaction Time", "optionAName" → "Option A Name",
+        //           "URLParser" → "URL Parser", "message" → "Message"
+        private static string PrettifyFieldName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return name;
+            var sb = new StringBuilder();
+            for (int i = 0; i < name.Length; i++)
+            {
+                char c = name[i];
+                if (c == '_') { sb.Append(' '); continue; }
+                if (i > 0 && char.IsUpper(c))
+                {
+                    bool prevLower = char.IsLower(name[i - 1]);
+                    bool nextLower = i + 1 < name.Length && char.IsLower(name[i + 1]);
+                    if (prevLower || (char.IsUpper(name[i - 1]) && nextLower))
+                        sb.Append(' ');
+                }
+                sb.Append(i == 0 ? char.ToUpper(c) : c);
+            }
+            return sb.ToString().Trim();
+        }
+
+        // Build a BIDS-compatible Levels JSON object from a string[] of "value:description" entries.
+        // Each element is "value:description" or just "value" (value used as its own description).
+        // Output: {"value": "description", ...}
+        private static string BuildLevelsJson(string[] levels)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{");
+            for (int i = 0; i < levels.Length; i++)
+            {
+                if (i > 0) sb.Append(", ");
+                string entry = levels[i].Trim();
+                int    colon = entry.IndexOf(':');
+                string key   = colon >= 0 ? entry.Substring(0, colon).Trim()      : entry;
+                string desc  = colon >= 0 ? entry.Substring(colon + 1).Trim()     : entry;
+                sb.Append($"\"{EscapeJsonString(key)}\": \"{EscapeJsonString(desc)}\"");
+            }
+            sb.Append("}");
+            return sb.ToString();
+        }
+
+        // Escapes characters that are unsafe inside a JSON string literal.
+        private static string EscapeJsonString(string s)
+        {
+            if (s == null) return "";
+            return s.Replace("\\", "\\\\")
+                     .Replace("\"", "\\\"")
+                     .Replace("\n",  "\\n")
+                     .Replace("\r",  "\\r")
+                     .Replace("\t",  "\\t");
+        }
+
         #endregion
 
     }
