@@ -1,25 +1,23 @@
 // BinaryChoiceDataClasses.cs
-// Data tables specific to the Binary Choice demo experiment.
+// Custom data tables specific to the Binary Choice demo.
+// Each class defines one CSV file; its static Log() method is the reporter —
+// call it from your flow scripts instead of calling LogCustom() directly.
 //
-// ─────────────────────────────────────────────────────────────────────────────
-// WHERE TO PUT YOUR DATA CLASSES
-// ─────────────────────────────────────────────────────────────────────────────
+// ── For new developers ────────────────────────────────────────────────────────
+// PATTERN: ClassName.Log(...) writes one row to that class's CSV.
+// Pass plain values; the method constructs the data object and handles the rest.
+// Example:
+//   ChoiceEvents.Log(task, trial, optionA, optionB, choice, slot, hand, rt, t0, t1);
 //
-// For how data classes work, see the "custom data classes" region in
-// ResXRDataManager.cs — it has the full explanation and examples.
+// To add a new table:
+//   1. Add a class implementing CustomDataClass (onset, duration, public fields)
+//   2. Annotate every public field with [ColumnInfo("description")]
+//   3. Add a static Log() method at the bottom of the class
+//   4. Call ClassName.Log(...) from your flow script
 //
-// Option A — Dedicated file like this one.
-//            Recommended when your experiment has multiple tables, or when
-//            the same table is used from several scripts.
-//            Keep classes in the ResXRData namespace so any script can reach
-//            them with a single "using ResXRData;" line.
-//
-// Option B — The "custom data classes" region inside ResXRDataManager.cs.
-//            Good for tables that are truly universal across experiments
-//            (like TrialsData and events, which are already there).
-//
-// The demo experiments use dedicated files (Option A) so definitions are easy
-// to find and not buried inside flow managers.
+// For the full explanation of how data classes and reporters work, see
+// ResXRDataManager_README.md or the "custom data classes" region in
+// ResXRDataManager.cs.
 // ─────────────────────────────────────────────────────────────────────────────
 
 using ResXRData;
@@ -28,35 +26,36 @@ using UnityEngine;
 namespace ResXRData
 {
     /// <summary>
-    /// One row per trial. Written by BinaryChoice_TrialManager.EndTrial() after LogChoice().
-    /// Records which stimuli were shown, which was chosen, and timing information.
-    /// The convenience method ResXRDataManager.Instance.LogChoice(...) creates this row for you.
+    /// One row per trial. Records which stimuli were shown, which was chosen, and timing.
+    /// Written by <c>BinaryChoice_TrialManager</c> at the moment the participant's choice
+    /// is registered.
+    /// Call <c>ChoiceEvents.Log(...)</c> from your flow scripts to write a row.
     /// </summary>
     public class ChoiceEvents : CustomDataClass
     {
-        public float onset    { get; }   // Time.realtimeSinceStartup at the moment the choice was made
+        public float onset    { get; }   // Time.realtimeSinceStartup when the choice was made
         public float duration { get; }   // 0f — instantaneous event
 
-        [ColumnInfo("Task name or index")]
+        [ColumnInfo("Task name or index within the session", Format = "string")]
         public string Task;
         [ColumnInfo("Trial index within the task", Format = "integer")]
         public int Trial;
         [ColumnInfo("Name of the image sprite shown in slot A")]
-        public string OptionAName;    // Name of the sprite shown on slot A
+        public string OptionAName;
         [ColumnInfo("Name of the image sprite shown in slot B")]
-        public string OptionBName;    // Name of the sprite shown on slot B
+        public string OptionBName;
         [ColumnInfo("Name of the chosen image")]
-        public string Choice;         // Name of the chosen image
-        [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot")]
-        public string ChosenOption;   // "A" or "B"
-        [ColumnInfo("Hand used to touch the chosen stimulus", "Left", "Right")]
-        public string HandUsed;       // Which hand touched the stimulus
+        public string Choice;
+        [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot", Format = "string")]
+        public string ChosenOption;
+        [ColumnInfo("Hand used to touch the chosen stimulus", "Left:Left hand", "Right:Right hand", Format = "string")]
+        public string HandUsed;
         [ColumnInfo("Seconds from stimulus display to touch", Units = "s", Format = "number", Minimum = 0.0)]
-        public float ReactionTime;    // Seconds from stimulus display to choice
-        [ColumnInfo("Time.realtimeSinceStartup when the stimuli appeared on screen", Units = "s", Format = "number", Minimum = 0.0)]
-        public float displayTime;     // Time.realtimeSinceStartup when stimuli appeared
-        [ColumnInfo("Time.realtimeSinceStartup when the choice touch was registered", Units = "s", Format = "number", Minimum = 0.0)]
-        public float ChoiceTime;      // Time.realtimeSinceStartup when choice was registered
+        public float ReactionTime;
+        [ColumnInfo("Seconds since application start when the stimuli appeared on screen", Units = "s", Format = "number", Minimum = 0.0)]
+        public float displayTime;
+        [ColumnInfo("Seconds since application start when the choice touch was registered", Units = "s", Format = "number", Minimum = 0.0)]
+        public float ChoiceTime;
 
         public ChoiceEvents(string task, int trial, string optionAName, string optionBName, string choice,
             string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
@@ -74,21 +73,34 @@ namespace ResXRData
             this.displayTime = displayTime;
             this.ChoiceTime = choiceTime;
         }
+
+        /// <summary>
+        /// Writes one ChoiceEvents row. Call immediately after the participant makes a choice.
+        /// </summary>
+        public static void Log(string task, int trial, string optionAName, string optionBName,
+            string choice, string chosenOption, string handUsed,
+            float reactionTime, float displayTime, float choiceTime)
+        {
+            ResXRDataManager.Instance.LogCustom(
+                new ChoiceEvents(task, trial, optionAName, optionBName, choice,
+                                 chosenOption, handUsed, reactionTime, displayTime, choiceTime));
+        }
     }
 
     /// <summary>
     /// World-space bounding boxes of the two choice slots (A and B).
-    /// Written ONCE at session start by ChoicesManager.LogStimulusBoundsOnce().
+    /// Written once at session start by <c>ChoicesManager.RecordStimulusBounds()</c>.
     /// Use these to resolve whether and where the participant's gaze landed on
     /// each stimulus from the continuous gaze data in ContinuousData.csv.
+    /// Call <c>StimulusBounds.Log(...)</c> to write a row (via the ChoicesManager wrapper).
     /// </summary>
     public class StimulusBounds : CustomDataClass
     {
         public float onset    { get; }   // Time.realtimeSinceStartup when bounds were logged
         public float duration { get; }   // 0f — configuration snapshot, not a timed event
 
-        [ColumnInfo("Slot identifier matching ChosenOption in ChoiceEvents", "A:Left slot", "B:Right slot")]
-        public string ChoiceId;          // "A" or "B" — matches ChosenOption in ChoiceEvents
+        [ColumnInfo("Slot identifier matching ChosenOption in ChoiceEvents", "A:Left slot", "B:Right slot", Format = "string")]
+        public string ChoiceId;
         // Renderer bounds (visual area of the stimulus quad)
         [ColumnInfo("World-space X component of the renderer bounding box centre", Units = "m", Format = "number")]
         public float RendererCenterX;
@@ -137,6 +149,24 @@ namespace ResXRData
             ColliderSizeX = colliderSizeX;
             ColliderSizeY = colliderSizeY;
             ColliderSizeZ = colliderSizeZ;
+        }
+
+        /// <summary>
+        /// Writes one StimulusBounds row. Called once per slot at session start
+        /// via <c>ChoicesManager.RecordStimulusBounds()</c>.
+        /// </summary>
+        public static void Log(float timeSinceStart, string choiceId,
+            float rendererCenterX, float rendererCenterY, float rendererCenterZ,
+            float rendererSizeX, float rendererSizeY, float rendererSizeZ,
+            float colliderCenterX, float colliderCenterY, float colliderCenterZ,
+            float colliderSizeX, float colliderSizeY, float colliderSizeZ)
+        {
+            ResXRDataManager.Instance.LogCustom(
+                new StimulusBounds(timeSinceStart, choiceId,
+                    rendererCenterX, rendererCenterY, rendererCenterZ,
+                    rendererSizeX, rendererSizeY, rendererSizeZ,
+                    colliderCenterX, colliderCenterY, colliderCenterZ,
+                    colliderSizeX, colliderSizeY, colliderSizeZ));
         }
     }
 }

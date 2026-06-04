@@ -143,12 +143,11 @@ public string Choice;
 [ColumnInfo("Seconds from stimulus display to choice", Units = "s", Format = "number", Minimum = 0.0)]
 public float ReactionTime;
 
-// Categorical — levels as "value:description" positional params:
+// Categorical — levels always as "value:description" (both parts required):
 [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot")]
 public string ChosenOption;
 
-// Categorical — value-only labels (value serves as its own description in the sidecar):
-[ColumnInfo("Hand used to make the choice", "Left", "Right")]
+[ColumnInfo("Hand used to make the choice", "Left:Left hand", "Right:Right hand")]
 public string HandUsed;
 
 // Numeric with full range bounds:
@@ -161,7 +160,7 @@ public float Confidence;
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `description` | `string` | **Yes** | Human-readable description of the column. Empty or missing logs a hard error. |
-| `levels` | `params string[]` | No | Categorical levels as `"value:description"` or just `"value"`. Omit entirely for non-categorical fields. |
+| `levels` | `params string[]` | No | Categorical levels, each as `"value:description"`. Both value and description are required — value-only entries are not allowed. Omit entirely for non-categorical fields. See [BIDS spec](https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels). |
 | `Units` | named `string` | No | Physical units (e.g. `"s"`, `"m"`, `"degrees"`). Omit for dimensionless or categorical columns. |
 | `Format` | named `string` | No | BIDS column format type. Must be one of 18 allowed values (see below). An unrecognised value logs a hard error at session end. |
 | `Minimum` | named `double` | No | Minimum expected value for numeric columns. |
@@ -182,25 +181,25 @@ At session end, C# reflection reads all `[ColumnInfo]` attributes across every c
 
 ---
 
-### Step 3: Add a reporter function
+### Step 3: Add a static reporter
 
-The recommended pattern is to add a named method in `ResXRDataManager.cs` that constructs the data object and calls `LogCustom(...)`. This keeps your experiment scripts clean — one readable line instead of `new ChoiceEvents(...)` scattered across your flow scripts.
+The recommended pattern is to add a static `Log()` method directly on the data class itself. This keeps your experiment scripts clean — one readable line instead of `new ChoiceEvents(...)` scattered across your flow scripts — and keeps the reporter co-located with the class it serves.
 
 ```csharp
-// In ResXRDataManager.cs — add this method:
-public void LogChoice(string task, int trial, string choice, string chosenOption, float reactionTime)
+// In the same file as your data class — add this method:
+public static void Log(string task, int trial, string choice, string chosenOption, float reactionTime)
 {
-    LogCustom(new ChoiceEvents(task, trial, choice, chosenOption, reactionTime));
+    ResXRDataManager.Instance.LogCustom(new ChoiceEvents(task, trial, choice, chosenOption, reactionTime));
 }
 ```
 
 Then from your `TrialManager` or anywhere in your experiment:
 
 ```csharp
-ResXRDataManager.Instance.LogChoice(currentTask, trialIndex, chosenImage, chosenOption, rt);
+ChoiceEvents.Log(currentTask, trialIndex, chosenImage, chosenOption, rt);
 ```
 
-You can also skip the wrapper and call `LogCustom(...)` directly — useful for quick prototyping.
+You can also skip the reporter and call `LogCustom(new ChoiceEvents(...))` directly — fine for quick prototyping, but the static `Log()` is preferred for anything permanent.
 
 ---
 
@@ -247,9 +246,9 @@ ResXRDataManager.Instance.LogLineToFile($"stimulus loaded: {stimulusName}");
 
 #### `TrialsData` — Universal trial summary
 
-**CSV:** `{sessionTime}_TrialsData.csv` &nbsp;|&nbsp; **Columns:** `onset`, `duration`, `Session`, `Task`, `Trial`, `TrialName`
+**CSV:** `{sessionTime}_TrialsData.csv` &nbsp;|&nbsp; **Columns:** `onset`, `duration`, `Task`, `Trial`, `TrialName`
 
-A shared trial summary row written by every demo's `TrialManager.EndTrial()`. Provides one consistent row per trial across all experiments, making it easy to merge data from multiple sessions or paradigms. Extend with a demo-specific subclass (e.g. `MazeTrials`) when you need extra columns — do not modify this class directly.
+A shared trial summary row written by every demo's `TrialManager.EndTrial()`. Provides one consistent row per trial across all experiments, making it easy to merge data from multiple sessions or paradigms. Extend with a demo-specific subclass (e.g. `MazeTrialData`) when you need extra columns — do not modify this class directly. Call `TrialsData.Log(...)` to write a row.
 
 ---
 
@@ -257,21 +256,21 @@ A shared trial summary row written by every demo's `TrialManager.EndTrial()`. Pr
 
 ### Overview
 
-A reporter function is a thin named method in `ResXRDataManager.cs` that constructs a data object and calls `LogCustom(...)`. You are not required to write one — you can call `LogCustom(new MyClass(...))` directly anywhere — but the pattern has a clear benefit: your experiment scripts (TrialManager, TaskManager, etc.) stay readable and free of data-class construction logic.
+A reporter is a static `Log()` method defined directly on the data class. It constructs the data object and calls `LogCustom(...)`. You are not required to write one — you can call `LogCustom(new MyClass(...))` directly anywhere — but the pattern has a clear benefit: your experiment scripts (TrialManager, TaskManager, etc.) stay readable and free of data-class construction logic.
 
-Think of it the same way `LogLineToFile` wraps `ResXRLogs`, or `ReportEvent` wraps `events`. Each reporter is one line in your experiment code that maps cleanly to one row in one CSV.
+The reporter lives in the same file as the class it serves. That way the schema (fields + annotations) and the writer (Log method) are always in one place. See any of the demo data class files for working examples.
 
 ### How to Use
 
 ```csharp
-// Pattern: add a named method in ResXRDataManager.cs
-public void LogChoice(string task, int trial, string choice, string chosenOption, float reactionTime)
+// Pattern: add a static Log() method on your data class
+public static void Log(string task, int trial, string choice, string chosenOption, float reactionTime)
 {
-    LogCustom(new ChoiceEvents(task, trial, choice, chosenOption, reactionTime));
+    ResXRDataManager.Instance.LogCustom(new ChoiceEvents(task, trial, choice, chosenOption, reactionTime));
 }
 
 // Then call it from anywhere in your experiment:
-ResXRDataManager.Instance.LogChoice(taskName, trialIndex, imageName, slot, rt);
+ChoiceEvents.Log(taskName, trialIndex, imageName, slot, rt);
 ```
 
 The `LogCustom` overloads:
@@ -442,8 +441,8 @@ A: See `data_sources_README.txt`.
 A:
 1. Write a class implementing `CustomDataClass` with `onset`/`duration` properties and your public fields
 2. Add `[ColumnInfo("description")]` to every public field
-3. Add a reporter method in `ResXRDataManager.cs` that calls `LogCustom(new YourClass(...))`
-4. Call your reporter from your experiment scripts
+3. Add a `public static void Log(...)` method on the class that calls `LogCustom(new YourClass(...))`
+4. Call `YourClass.Log(...)` from your experiment scripts
 
 **Q: Will missing values appear as zeros?**  
 A: No. Empty cells are left blank — blank means "no data this tick", not zero.

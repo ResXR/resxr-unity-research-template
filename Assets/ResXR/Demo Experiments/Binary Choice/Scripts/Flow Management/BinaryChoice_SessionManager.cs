@@ -47,7 +47,7 @@ public class BinaryChoice_SessionManager : ResXRSingleton<BinaryChoice_SessionMa
         LoadTasksFromConfig();
         InitializeReferences();
 
-        BinaryChoice_SceneReferencer.Instance.choicesManager.LogStimulusBoundsOnce();
+        BinaryChoice_SceneReferencer.Instance.choicesManager.RecordStimulusBounds();
 
         ResXRDataManager.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
 

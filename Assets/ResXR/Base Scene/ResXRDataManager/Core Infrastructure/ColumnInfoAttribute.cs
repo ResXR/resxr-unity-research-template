@@ -13,8 +13,14 @@
 //   description  — human-readable description of the column. Required.
 //                  Missing annotation or empty description both log a hard error +
 //                  ResXRLogs entry at session end; the field name is used as a placeholder.
-//   levels       — one string per categorical level, as "value:description" pairs.
+//   levels       — one string per categorical level, each in "value:description" format.
+//                  "value" is what appears in the CSV; "description" is the human-readable label.
+//                  Value-only entries (e.g. "Left") are NOT allowed — BIDS requires a description
+//                  for every level. Use "Left:Left hand" instead.
+//                  Splitting is on the FIRST colon only, so extra colons in the description
+//                  are fine: "url:https://example.com" → value="url", desc="https://example.com".
 //                  Omit entirely for non-categorical fields (empty params = no levels).
+//                  Ref: https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels
 //
 // ── Named properties (all optional) ──────────────────────────────────────────
 //   Units        — physical units string (e.g. "s", "m", "degrees").
@@ -42,10 +48,6 @@
 //   Categorical — levels as positional params:
 //     [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot")]
 //     public string ChosenOption;
-//
-//   Categorical with value-only labels (value serves as its own description):
-//     [ColumnInfo("Hand used to make the choice", "Left", "Right")]
-//     public string HandUsed;
 //
 //   Both units and levels (uncommon):
 //     [ColumnInfo("Signal level", "Low:Below threshold", "High:Above threshold", Units = "dB")]
@@ -81,10 +83,12 @@ namespace ResXRData
 
         /// <summary>
         /// Categorical levels as an array of <c>"value:description"</c> strings
-        /// (e.g. <c>"A:Left slot"</c>, <c>"Right:Right hand"</c>).
-        /// Entries without a colon use the value as its own description.
+        /// (e.g. <c>"A:Left slot"</c>, <c>"Left:Left hand"</c>).
+        /// Every entry must contain a colon — value-only entries (e.g. <c>"Left"</c>) are not
+        /// allowed because BIDS requires a description for every level.
         /// <c>null</c> when the field is not categorical.
         /// Written as a JSON object in the sidecar: <c>{"A": "Left slot", ...}</c>.
+        /// See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels
         /// </summary>
         public string[] Levels { get; }
 
@@ -119,6 +123,7 @@ namespace ResXRData
         /// <param name="description">Human-readable description of the column. Required.</param>
         /// <param name="levels">
         /// Zero or more <c>"value:description"</c> strings for categorical columns.
+        /// Every entry must include a colon — value-only entries are not allowed.
         /// Omit entirely for non-categorical fields.
         /// </param>
         public ColumnInfoAttribute(string description, params string[] levels)

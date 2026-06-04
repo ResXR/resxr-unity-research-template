@@ -65,18 +65,13 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
         float endTime = Time.realtimeSinceStartup;
         string trialName = $"{_currentTaskName}_t{_currentTrialIndex}";
 
-        ResXRDataManager.Instance.ReportEvent(
-            $"trial_end:{trialName}",
-            endTime, 0f);
-
-        ResXRDataManager.Instance.LogCustom(new TrialsData(
-            ResXRDataManager.Instance.SessionTime,
+        TrialsData.Log(
             _currentTaskName,
             _currentTrialIndex.ToString(),
             trialName,
             _trialStartTime,
             endTime
-        ));
+        );
     }
 
     private void Update()

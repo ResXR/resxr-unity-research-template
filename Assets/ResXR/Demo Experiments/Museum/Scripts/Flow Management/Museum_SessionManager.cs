@@ -43,7 +43,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
         Museum_SceneReferencer.Instance.imagesRating.LogSliderConfig();
 
         // Artwork bounds: written once per session (world-space bounds + orientation per artwork)
-        LogArtworkBounds();
+        RecordArtworkBounds();
     }
 
 
@@ -63,7 +63,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
     /// artworks and artworkColliders must be the same length and in the same order.
     /// Call once at session start. Wire up both arrays in the Inspector before building.
     /// </summary>
-    private void LogArtworkBounds()
+    private void RecordArtworkBounds()
     {
         Renderer[] artworks = Museum_SceneReferencer.Instance.artworks;
         Collider[] colliders = Museum_SceneReferencer.Instance.artworkColliders;
@@ -86,7 +86,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
         {
             if (artworks[i] == null) { Debug.LogError($"[Museum_SessionManager] artworks[{i}] is null — skipping."); continue; }
             if (colliders[i] == null) { Debug.LogError($"[Museum_SessionManager] artworkColliders[{i}] is null — skipping."); continue; }
-            ResXRDataManager.Instance.LogCustom(new ArtworkBounds(t, artworks[i], colliders[i]));
+            ArtworkBounds.Log(t, artworks[i], colliders[i]);
             logged++;
         }
 

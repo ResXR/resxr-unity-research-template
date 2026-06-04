@@ -45,7 +45,7 @@ Recording options (inspector):
   Signature: [ColumnInfo(description, levels..., Units = "...", Format = "...", Minimum = N, Maximum = N)]
   description is the only required argument; all others are optional.
   Missing [ColumnInfo] entirely or leaving description empty both log a hard error +
-  ResXRLogs entry at session end; the field name is used as a placeholder description.
+  ResXRDebugLogs entry at session end; the field name is used as a placeholder description.
 
       // Non-categorical (no levels):
       [ColumnInfo("Name of the chosen image")]
@@ -55,12 +55,11 @@ Recording options (inspector):
       [ColumnInfo("Seconds from stimulus display to choice", Units = "s", Format = "number", Minimum = 0.0)]
       public float ReactionTime;
 
-      // Categorical — one string per level as "value:description":
+      // Categorical — one string per level, always "value:description":
       [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot")]
       public string ChosenOption;
 
-      // Categorical, value-only labels (value becomes its own description):
-      [ColumnInfo("Hand used to make the choice", "Left", "Right")]
+      [ColumnInfo("Hand used to make the choice", "Left:Left hand", "Right:Right hand")]
       public string HandUsed;
 
       // Numeric with range bounds:
@@ -68,8 +67,10 @@ Recording options (inspector):
       public float Confidence;
 
   levels are positional params (one string per level); omit entirely for non-categorical fields.
-  Each level string is "value:description" — the description is optional (use just "value" to
-  have the value serve as its own label in the sidecar).
+  Each level string MUST be "value:description" — value-only entries (e.g. "Left") are not
+  allowed because BIDS requires a description for every level. Both the value and description
+  must be non-empty. See BIDS spec:
+    https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels
   Units is an optional named property; omit for dimensionless or categorical columns.
   Format must be one of the 18 BIDS-allowed values (an unrecognised value logs an error at session end):
     string, number, integer, boolean, index, label, date, datetime, time, unit,
@@ -112,14 +113,17 @@ Recording options (inspector):
       }
 
 - **Reporter functions**
-  Add helper functions in ResXRDataManager to log your new class (or call `LogCustom(...)` yourself).
+  Add a static Log() method directly on your data class (or call LogCustom(...) yourself).
+  The reporter lives in the same file as the class it serves — schema and writer in one place.
 
   Example:
-      public void LogChoice(string task, int trial, ...)
+      public static void Log(string task, int trial, ...)
       {
-          var choiceEvent = new ChoiceEvents(...);
-          LogCustom(choiceEvent);
+          ResXRDataManager.Instance.LogCustom(new ChoiceEvents(task, trial, ...));
       }
+
+  Call it from your flow scripts:
+      ChoiceEvents.Log(taskName, trialIndex, ...);
 
 - **Custom transforms**
   In the Unity inspector, assign transforms (objects) 
@@ -174,7 +178,7 @@ Each session is accompanied by two JSON files:
   share the same onset/duration clock as ContinuousData.csv, the pipeline can also
   merge them into a single BIDS events file.
   Any validation errors (empty descriptions, unrecognised Format values) are written
-  to both Debug.LogError and ResXRLogs.csv before this file is written.
+  to both Debug.LogError and ResXRDebugLogs.csv before this file is written.
 
 Together, this guarantees reproducibility: you know 
 exactly which build and session produced the data and under which 

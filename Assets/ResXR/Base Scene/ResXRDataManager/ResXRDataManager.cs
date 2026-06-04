@@ -35,16 +35,20 @@ namespace ResXRData
     //   • Writes one data row per call
     //   • Flushes to disk immediately — crash-safe
     //
-    // The recommended pattern is to wrap LogCustom in a named reporter method,
-    // the same way LogLineToFile() wraps ResXRLogs here in this file, or the way
-    // LogChoice() wraps ChoiceEvents for the Binary Choice demo.
-    // That keeps your flow scripts clean — one readable call instead of
-    // "new MyClass(...)" scattered everywhere.
+    // The recommended pattern is to add a static Log() method directly on the data
+    // class itself. Every demo data class file follows this pattern — for example,
+    // ChoiceEvents.Log(...) in BinaryChoiceDataClasses.cs, or TrialsData.Log(...)
+    // defined right here. The reporter takes plain values, constructs the data object,
+    // and calls LogCustom(). That keeps flow scripts clean — one readable line instead
+    // of "new MyClass(...)" scattered everywhere.
+    // LogCustom() is still public for quick prototyping, but prefer ClassName.Log(...).
     //
-    // WHERE SHOULD YOUR DATA CLASS LIVE?
-    //   • Here in this region — the simplest choice, everything in one place.
-    //   • A dedicated file next to your experiment scripts — keeps things tidy
-    //     when your experiment has many tables (see BinaryChoiceDataClasses.cs).
+    // WHERE SHOULD YOUR DATA CLASS LIVE? — BEST PRACTICE
+    //   • Here in this region — good for tables shared across all experiments
+    //     (like TrialsData and events, which are already here).
+    //   • A dedicated file next to your experiment scripts — best for experiment-specific
+    //     tables; keeps definitions, annotations, and the Log() reporter all in one place
+    //     (see BinaryChoiceDataClasses.cs, MazeDataClasses.cs, MuseumDataClasses.cs).
     //
     // Demo-specific tables already defined:
     //   BinaryChoiceDataClasses.cs  →  ChoiceEvents, StimulusBounds
@@ -58,15 +62,15 @@ namespace ResXRData
     /// Handy for quick debugging during device builds when you can't use the Unity console —
     /// drop a LogLineToFile call anywhere and inspect the CSV after the run.
     /// </summary>
-    public class ResXRLogs : CustomDataClass
+    public class ResXRDebugLogs : CustomDataClass
     {
-        public float onset    { get; }   // Time.realtimeSinceStartup when the note was written
+        public float onset { get; }   // Time.realtimeSinceStartup when the note was written
         public float duration { get; }   // 0f — instantaneous log entry
 
-        [ColumnInfo("Timestamped debug note written to file during the session")]
+        [ColumnInfo("Timestamped debug note written to file during the session", Format = "string")]
         public string message;
 
-        public ResXRLogs(float t, string msg)
+        public ResXRDebugLogs(float t, string msg)
         {
             onset = t;
             duration = 0f;
@@ -78,31 +82,37 @@ namespace ResXRData
     /// Universal trial summary row, written by every demo's TrialManager.EndTrial().
     /// Gives you one row per trial across all experiments with a consistent schema,
     /// making it easy to merge data from multiple sessions or paradigms.
-    /// Extend this with a demo-specific table (e.g. MazeTrials) when you need
+    /// Extend this with a demo-specific table (e.g. MazeTrialData) when you need
     /// extra columns — don't modify this class directly.
+    /// Call <c>TrialsData.Log(...)</c> from your flow scripts to write a row.
     /// </summary>
     public class TrialsData : CustomDataClass
     {
-        public float onset    { get; }   // Time.realtimeSinceStartup at trial start
+        public float onset { get; }   // Time.realtimeSinceStartup at trial start
         public float duration { get; }   // Trial duration in seconds
 
-        [ColumnInfo("Session identifier (yyyy.MM.dd_HH-mm); links this row to session_metadata.json")]
-        public string Session;    // SessionTime string (yyyy.MM.dd_HH-mm) — links to session_metadata.json
-        [ColumnInfo("Task name or index within the session")]
-        public string Task;       // Task name or index
-        [ColumnInfo("Trial index within the task")]
-        public string Trial;      // Trial index within the task (can be changed to int if needed)
+        [ColumnInfo("Task name or index within the session", Format = "string")]
+        public string Task;
+        [ColumnInfo("Trial index within the task", Format = "string")]
+        public string Trial;      // string type — change to int in your own copy if preferred
         [ColumnInfo("Human-readable unique trial name, e.g. task1_t3")]
-        public string TrialName;  // Human-readable unique name, e.g. "maze_t0_t3"
+        public string TrialName;
 
-        public TrialsData(string session, string task, string trial, string trialName, float startTime, float endTime)
+        public TrialsData(string task, string trial, string trialName, float startTime, float endTime)
         {
             onset = startTime;
             duration = endTime - startTime;
-            Session = session;
             Task = task;
             Trial = trial;
             TrialName = trialName;
+        }
+
+        /// <summary>
+        /// Writes one TrialsData row. Call at trial end once the end time is known.
+        /// </summary>
+        public static void Log(string task, string trial, string trialName, float startTime, float endTime)
+        {
+            ResXRDataManager.Instance.LogCustom(new TrialsData(task, trial, trialName, startTime, endTime));
         }
     }
 
@@ -115,10 +125,10 @@ namespace ResXRData
     /// </summary>
     public class events : CustomDataClass
     {
-        public float onset    { get; }   // Time.realtimeSinceStartup when the event started
+        public float onset { get; }   // Time.realtimeSinceStartup when the event started
         public float duration { get; }   // Duration in seconds; 0 for point events
 
-        [ColumnInfo("Event label identifying this marker, e.g. trial_start or stimulus_on")]
+        [ColumnInfo("Event label identifying this marker, e.g. trial_start or stimulus_on", Format = "string")]
         public string name;    // Event label, e.g. "trial_start:task1_t0" or "stimulus:task1_t3"
 
         public events(string name, float onset, float duration)
@@ -179,7 +189,7 @@ namespace ResXRData
         public event Action<FaceExpressionSample> OnFaceExpressionSample; // Fired once per physics tick, right before writing FaceExpressions csv
 
         // declare pointers for all experience-specific analytics classes
-        private ResXRLogs logLine;
+        private ResXRDebugLogs logLine;
 
         #endregion
 
@@ -195,7 +205,7 @@ namespace ResXRData
         /// </summary>
         public void LogLineToFile(string line)
         {
-            logLine = new ResXRLogs(Time.realtimeSinceStartup, line);
+            logLine = new ResXRDebugLogs(Time.realtimeSinceStartup, line);
             this.LogCustom(logLine);
         }
 
@@ -223,17 +233,6 @@ namespace ResXRData
         public void ReportEvent(string name, float onset, float duration)
         {
             LogCustom(new events(name, onset, duration));
-        }
-
-        // ── LogChoice ──────────────────────────────────────────────────────────
-        // Binary Choice demo convenience wrapper. Writes one row to ChoiceEvents.csv.
-        // If you are not using the Binary Choice demo, you can ignore this method
-        // (or delete it — it only exists because BinaryChoice_TrialManager calls it).
-        public void LogChoice(string task, int trial, string optionAName, string optionBName, string choice,
-            string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
-        {
-            var choiceEvent = new ChoiceEvents(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
-            LogCustom(choiceEvent);
         }
 
         #endregion
@@ -457,25 +456,26 @@ namespace ResXRData
 
         // ── LogCustom ──────────────────────────────────────────────────────────
         // The low-level write method. You generally won't call this directly —
-        // instead, add a named reporter method to this class (like LogLineToFile
-        // and LogChoice below) that creates the data object and calls LogCustom.
-        // That keeps your experiment scripts clean and readable.
+        // instead, add a static Log() method on the data class itself (see
+        // TrialsData.Log() in this file, or ChoiceEvents.Log() in
+        // BinaryChoiceDataClasses.cs for examples). The reporter takes plain
+        // values, constructs the data object, and calls LogCustom().
         //
-        // Example: if you have a "MyTrialEvent" data class, add a method here:
+        // Example: if you have a "MyTrialEvent" data class, add a method to it:
         //
-        //   public void LogMyTrialEvent(string label, float rt) {
-        //       LogCustom(new MyTrialEvent(label, rt));
+        //   public static void Log(string label, float rt) {
+        //       ResXRDataManager.Instance.LogCustom(new MyTrialEvent(label, rt));
         //   }
         //
         // Then from your TrialManager you just write:
-        //   ResXRDataManager_V2.Instance.LogMyTrialEvent("stimulus_on", reactionTime);
+        //   MyTrialEvent.Log("stimulus_on", reactionTime);
         //
         // ──────────────────────────────────────────────────────────────────────
 
         /// <summary>
         /// Writes one row to the CSV table for this data class.
         /// The CSV file is created automatically on the first call.
-        /// Prefer creating a named reporter method over calling this directly.
+        /// Prefer using the static <c>Log()</c> method on your data class over calling this directly.
         /// </summary>
         public void LogCustom(CustomDataClass data)
         {
@@ -703,6 +703,63 @@ namespace ResXRData
                         Debug.LogError(msg);
                         try { LogLineToFile(msg); } catch { }
                     }
+
+                    // Validate levels format: each entry must be "value:description".
+                    // Value-only entries are not allowed — BIDS requires a description for every level.
+                    // See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels
+                    if (col.levels != null)
+                    {
+                        foreach (string level in col.levels)
+                        {
+                            string entry = level?.Trim() ?? "";
+
+                            if (string.IsNullOrWhiteSpace(entry))
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"a level entry is empty or whitespace. All levels must use \"value:description\" format. " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                                continue;
+                            }
+
+                            int colon = entry.IndexOf(':');
+
+                            if (colon < 0)
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"level \"{entry}\" has no description. Value-only levels are not allowed — " +
+                                             $"use \"value:description\" format (e.g. \"{entry}:{entry} description here\"). " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                                continue;
+                            }
+
+                            string key = entry.Substring(0, colon).Trim();
+                            string desc = entry.Substring(colon + 1).Trim();
+
+                            if (string.IsNullOrEmpty(key))
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"level \"{entry}\" has an empty value (nothing before the colon). " +
+                                             $"Use \"value:description\" format. " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                            }
+
+                            if (string.IsNullOrEmpty(desc))
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"level \"{entry}\" has an empty description (nothing after the colon). " +
+                                             $"Use \"value:description\" format. " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -734,11 +791,11 @@ namespace ResXRData
                 for (int c = 0; c < s.columns.Length; c++)
                 {
                     if (c > 0) sb.Append(",");
-                    CustomColumnMeta col   = s.columns[c];
-                    string           desc  = string.IsNullOrEmpty(col.description)
+                    CustomColumnMeta col = s.columns[c];
+                    string desc = string.IsNullOrEmpty(col.description)
                                                 ? EscapeJsonString(PrettifyFieldName(col.name))
                                                 : EscapeJsonString(col.description);
-                    string           units = string.IsNullOrEmpty(col.units) ? "n/a" : EscapeJsonString(col.units);
+                    string units = string.IsNullOrEmpty(col.units) ? "n/a" : EscapeJsonString(col.units);
                     sb.Append($"\n        \"{EscapeJsonString(col.name)}\": {{\"description\": \"{desc}\", \"units\": \"{units}\"");
                     if (!string.IsNullOrEmpty(col.format))
                         sb.Append($", \"Format\": \"{EscapeJsonString(col.format)}\"");
@@ -794,9 +851,9 @@ namespace ResXRData
             {
                 if (i > 0) sb.Append(", ");
                 string entry = levels[i].Trim();
-                int    colon = entry.IndexOf(':');
-                string key   = colon >= 0 ? entry.Substring(0, colon).Trim()      : entry;
-                string desc  = colon >= 0 ? entry.Substring(colon + 1).Trim()     : entry;
+                int colon = entry.IndexOf(':');
+                string key = colon >= 0 ? entry.Substring(0, colon).Trim() : entry;
+                string desc = colon >= 0 ? entry.Substring(colon + 1).Trim() : entry;
                 sb.Append($"\"{EscapeJsonString(key)}\": \"{EscapeJsonString(desc)}\"");
             }
             sb.Append("}");
@@ -809,9 +866,9 @@ namespace ResXRData
             if (s == null) return "";
             return s.Replace("\\", "\\\\")
                      .Replace("\"", "\\\"")
-                     .Replace("\n",  "\\n")
-                     .Replace("\r",  "\\r")
-                     .Replace("\t",  "\\t");
+                     .Replace("\n", "\\n")
+                     .Replace("\r", "\\r")
+                     .Replace("\t", "\\t");
         }
 
         #endregion

@@ -46,27 +46,21 @@ public class Maze_TrialManager : ResXRSingleton<Maze_TrialManager>
     {
         string trialName = $"{_currentTaskName}_t{_currentTrialIndex}";
 
-        ResXRDataManager.Instance.ReportEvent(
-            $"trial_end:{trialName}",
-            endTime, 0f);
-
         // Generic trial structure row (shared schema across all demos)
-        ResXRDataManager.Instance.LogCustom(new TrialsData(
-            ResXRDataManager.Instance.SessionTime,
+        TrialsData.Log(
             _currentTaskName,
             _currentTrialIndex.ToString(),
             trialName,
             _trialStartTime,
             endTime
-        ));
+        );
 
         // Maze-specific row: rotation state + coin/start positions recorded fresh each trial
         bool rotatedAtStart = Maze_SceneReferencer.Instance.maze.IsRotated;
         Vector3 coinPos = Maze_SceneReferencer.Instance.coin.transform.position;
         Vector3 startZonePos = Maze_SceneReferencer.Instance.startingPositionMark.transform.position;
 
-        ResXRDataManager.Instance.LogCustom(new MazeTrialData(
-            ResXRDataManager.Instance.SessionTime,
+        MazeTrialData.Log(
             _currentTaskName,
             _currentTrialIndex,
             trialName,
@@ -75,7 +69,7 @@ public class Maze_TrialManager : ResXRSingleton<Maze_TrialManager>
             rotatedAtStart,
             coinPos,
             startZonePos
-        ));
+        );
     }
 
 
