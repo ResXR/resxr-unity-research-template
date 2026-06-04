@@ -12,7 +12,7 @@
 // ── Constructor (required) ────────────────────────────────────────────────────
 //   description  — human-readable description of the column. Required.
 //                  Missing annotation or empty description both log a hard error +
-//                  ResXRLogs entry at session end; the field name is used as a placeholder.
+//                  ResXRDebugLogs entry at session end; the field name is used as a placeholder.
 //   levels       — one string per categorical level, each in "value:description" format.
 //                  "value" is what appears in the CSV; "description" is the human-readable label.
 //                  Value-only entries (e.g. "Left") are NOT allowed — BIDS requires a description
@@ -26,7 +26,7 @@
 //   Units        — physical units string (e.g. "s", "m", "degrees").
 //                  Omit for dimensionless or categorical columns.
 //   Format       — BIDS column format type (see allowed values below).
-//                  An unrecognised value logs a console error + ResXRLogs entry at session end.
+//                  An unrecognised value logs a console error + ResXRDebugLogs entry at session end.
 //   Minimum      — minimum expected value (numeric columns). Omit if not applicable.
 //   Maximum      — maximum expected value (numeric columns). Omit if not applicable.
 //
@@ -104,7 +104,7 @@ namespace ResXRData
         /// (string, number, integer, boolean, index, label, date, datetime, time,
         /// unit, uri, rrid, bids_uri, dataset_relative, file_relative,
         /// participant_relative, stimuli_relative, hed_version).
-        /// An unrecognised value logs a console error and a ResXRLogs entry at session end.
+        /// An unrecognised value logs a console error and a ResXRDebugLogs entry at session end.
         /// </summary>
         public string Format { get; set; }
 

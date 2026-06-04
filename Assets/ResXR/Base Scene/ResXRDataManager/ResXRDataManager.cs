@@ -58,7 +58,7 @@ namespace ResXRData
     #region custom data classes definitions
 
     /// <summary>
-    /// Append a timestamped text note to ResXRLogs.csv from anywhere in your code.
+    /// Append a timestamped text note to ResXRDebugLogs.csv from anywhere in your code.
     /// Handy for quick debugging during device builds when you can't use the Unity console —
     /// drop a LogLineToFile call anywhere and inspect the CSV after the run.
     /// </summary>
@@ -198,7 +198,7 @@ namespace ResXRData
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Appends a timestamped text note to ResXRLogs.csv.
+        /// Appends a timestamped text note to ResXRDebugLogs.csv.
         /// Particularly useful for debugging during device builds where the Unity console is
         /// unavailable — drop a LogLineToFile call anywhere and inspect the CSV after the run.
         /// For structured event data, prefer ReportEvent or LogCustom instead.
@@ -409,7 +409,7 @@ namespace ResXRData
 
             // Write custom_tables metadata BEFORE closing any writers:
             // - RowCount values are still accurate
-            // - LogLineToFile can still reach ResXRLogs.csv if an error occurs
+            // - LogLineToFile can still reach ResXRDebugLogs.csv if an error occurs
             WriteCustomTablesMetadata();
 
             // writers
@@ -629,7 +629,7 @@ namespace ResXRData
         /// <c>{sessionTime}_custom_tables_sidecar.json</c>.
         /// Must be called before <see cref="CustomCsvFromDataClass.CloseAll"/> so that
         /// <see cref="CsvRowWriter.RowCount"/> values are still current and
-        /// <see cref="LogLineToFile"/> can write to ResXRLogs.csv if an error occurs.
+        /// <see cref="LogLineToFile"/> can write to ResXRDebugLogs.csv if an error occurs.
         /// The sidecar is consumed by the ResXR Python pipeline post-experiment to
         /// auto-generate *_events.json BIDS sidecar files and merge all custom tables
         /// into the single BIDS events file.
@@ -650,7 +650,7 @@ namespace ResXRData
             catch (Exception ex)
             {
                 Debug.LogError($"[ResXRDataManager] WriteCustomTablesMetadata failed: {ex.Message}");
-                // Also log to ResXRLogs.csv while it is still open (CloseAll has not yet run).
+                // Also log to ResXRDebugLogs.csv while it is still open (CloseAll has not yet run).
                 try { LogLineToFile($"[WriteCustomTablesMetadata] ERROR: {ex.Message}"); } catch { }
             }
         }
@@ -660,7 +660,7 @@ namespace ResXRData
         //   (b) Annotation with empty description → error: same placeholder fallback applies.
         //   (c) Invalid Format value      → error: unrecognised value will be written as-is.
         // onset and duration are skipped — they are interface columns, not annotatable by the user.
-        // Logs to Debug.LogError + ResXRLogs.csv for easy debugging on device.
+        // Logs to Debug.LogError + ResXRDebugLogs.csv for easy debugging on device.
         // Called before BuildCustomTablesJson so issues surface even if the JSON build fails.
         private void ValidateColumnAnnotations(CustomTableSummary[] summaries)
         {
