@@ -50,6 +50,10 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
     private void EndSession()
     {
         ResXRDataManager.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
+
+        // Remember to call Application.Quit() here — this triggers ResXRDataManager's
+        // OnDestroy() cleanup: the session sidecar JSON is written and all CSV files are
+        // flushed before the app closes. Skipping it risks incomplete output files.
         Application.Quit();
     }
 

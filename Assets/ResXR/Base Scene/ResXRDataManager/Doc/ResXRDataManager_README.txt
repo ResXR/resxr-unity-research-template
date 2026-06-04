@@ -291,9 +291,17 @@ A: ContinuousData.csv and FaceExpressions.csv are logged
    you can log events at arbitrary times, regardless of the
    physics tick.
 
-Q: What if Unity crashes—will I lose data?  
+Q: What if Unity crashes—will I lose data?
 A: No, CsvRowWriter flushes each line to disk so files
    stay consistent.
+
+Q: Why must I call Application.Quit() at the end of the session?
+A: All cleanup — flushing CSV rows and writing the session sidecar JSON —
+   runs in ResXRDataManager.OnDestroy(). This only triggers reliably when
+   the app exits cleanly via Application.Quit(). If the OS kills the
+   process instead (e.g. the user removes their headset), the sidecar
+   JSON may be missing and the last CSV rows may not have been written.
+   Always make Application.Quit() the last line of EndSession().
 
 Note: Enum/flag fields are written as strings (e.g., "High", "Calibrating", "Tracked|OrientationValid") for readability.
 

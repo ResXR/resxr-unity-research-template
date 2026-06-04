@@ -456,6 +456,9 @@ A: Whenever your reporter function is called. Custom events are not tied to the 
 **Q: What if Unity crashes — will I lose data?**  
 A: No. `CsvRowWriter` flushes every row to disk immediately. Only the row actively being written at the crash moment is at risk.
 
+**Q: Why must I call `Application.Quit()` at the end of the session?**  
+A: All cleanup — flushing CSV rows and writing `{sessionTime}_custom_tables_sidecar.json` — runs in `ResXRDataManager.OnDestroy()`. This only triggers reliably when the app exits cleanly via `Application.Quit()`. If the OS kills the process instead (e.g. the user removes their headset), the sidecar JSON may be missing and the last CSV rows may not have been written. Always make `Application.Quit()` the last line of `EndSession()`.
+
 **Q: How do I debug on device?**  
 A: Use `ResXRDataManager.Instance.LogLineToFile("your message")` — it writes a timestamped row to `ResXRLogs.csv` alongside your other session files. Pull the files off the device after the session. *(adb logcat gives you raw Unity logs too — ResXRLogs is just more convenient and lives with your data.)*
 

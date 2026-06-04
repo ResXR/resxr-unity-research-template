@@ -40,6 +40,11 @@ public class SessionManager : ResXRSingleton<SessionManager>
     private void EndSession()
     {
         // setup end session conditions
+
+        // Remember to call Application.Quit() here — this triggers ResXRDataManager's
+        // OnDestroy() cleanup: the session sidecar JSON is written and all CSV files are
+        // flushed before the app closes. Skipping it risks incomplete output files.
+        Application.Quit();
     }
 
     private async UniTask BetweenTasksFlow()

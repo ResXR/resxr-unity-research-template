@@ -71,6 +71,11 @@ public class BinaryChoice_SessionManager : ResXRSingleton<BinaryChoice_SessionMa
         // setup end session conditions
         ResXRDataManager.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
         Debug.Log("Session Ended");
+
+        // Remember to call Application.Quit() here — this triggers ResXRDataManager's
+        // OnDestroy() cleanup: the session sidecar JSON is written and all CSV files are
+        // flushed before the app closes. Skipping it risks incomplete output files.
+        Application.Quit();
     }
 
     private async UniTask BetweenTasksFlow()
