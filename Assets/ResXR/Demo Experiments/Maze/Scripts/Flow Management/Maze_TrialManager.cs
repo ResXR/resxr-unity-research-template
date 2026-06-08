@@ -49,7 +49,7 @@ public class Maze_TrialManager : ResXRSingleton<Maze_TrialManager>
         // Generic trial structure row (shared schema across all demos)
         TrialsData.Log(
             _currentTaskName,
-            _currentTrialIndex.ToString(),
+            _currentTrialIndex,
             trialName,
             _trialStartTime,
             endTime

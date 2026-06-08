@@ -42,6 +42,13 @@ namespace ResXRData
         float duration { get; }   // 0f for instantaneous events; seconds for windowed events
     }
 
+    // Apply [BuiltInTable] to a CustomDataClass to keep its CSV at the session root folder
+    // alongside ContinuousData.csv and SessionMetadata.json, rather than in the CustomTables
+    // subfolder. Used for framework-internal tables (Events, ResXRDebugLogs) that are not
+    // part of the per-experiment custom data merged by the Python pipeline.
+    [AttributeUsage(AttributeTargets.Class)]
+    public sealed class BuiltInTableAttribute : Attribute { }
+
     // Column-level metadata harvested at session end for the custom_tables sidecar.
     // Populated from [ColumnInfo] attributes; all fields except name are null/NaN for unannotated fields.
     public struct CustomColumnMeta
@@ -57,7 +64,7 @@ namespace ResXRData
     }
 
     // One entry per registered custom table, returned by GetTableSummaries().
-    // Consumed by ResXRDataManager to write the custom_tables_sidecar.json file.
+    // Consumed by ResXRDataManager to write the CustomTables sidecar JSON.
     public struct CustomTableSummary
     {
         public string tableName;           // C# class name (e.g. "ChoiceEvents")
@@ -69,6 +76,7 @@ namespace ResXRData
     public static class CustomCsvFromDataClass
     {
         private static string _baseDirectory = ".";
+        private static string _customTablesDir = "."; // {sessionDir}/{prefix}_CustomTables/ — for non-[BuiltInTable] tables
         private static string _delimiter = ",";
         private static string _filePrefix = null; // e.g., "2025.09.14_15-08", sessionTime from DataManager
 
@@ -82,7 +90,8 @@ namespace ResXRData
         // Optional: remember which Type first defined a table schema (to detect conflicts).
         private static readonly Dictionary<string, Type> _definingTypeByTable = new Dictionary<string, Type>(StringComparer.Ordinal);
 
-        // Set output directory and delimiter (call once from your DataManager)
+        // Set output directory and delimiter (call once from your DataManager, after the session directory exists).
+        // Pre-creates the CustomTables subfolder so folder creation never delays the first Write() call.
         public static void Initialize(string baseDirectory, string delimiter = ",", string filePrefix = null)
         {
             if (!string.IsNullOrWhiteSpace(baseDirectory))
@@ -93,10 +102,23 @@ namespace ResXRData
 
             // Optional prefix for all custom CSVs (e.g., sessionTime)
             if (!string.IsNullOrWhiteSpace(filePrefix))
-            {
                 _filePrefix = SanitizeFileName(filePrefix);
-            }
 
+            // Pre-create the CustomTables subfolder at session start so it is never created mid-write.
+            // [BuiltInTable] CSVs (Events, ResXRDebugLogs) stay at _baseDirectory; all other tables go here.
+            string subfolderName = string.IsNullOrEmpty(_filePrefix) ? "CustomTables" : $"{_filePrefix}_CustomTables";
+            _customTablesDir = Path.Combine(_baseDirectory, subfolderName);
+            try
+            {
+                Directory.CreateDirectory(_customTablesDir);
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError(
+                    $"[ResXR: CustomCsvFromDataClass] Failed to create CustomTables directory '{_customTablesDir}': {ex.Message}. " +
+                    $"Custom table CSVs will fall back to the session root folder.");
+                _customTablesDir = _baseDirectory;
+            }
         }
 
         // Write one row for the given data instance.
@@ -152,6 +174,7 @@ namespace ResXRData
             _schemaByTable.Clear();
             _fieldsByTable.Clear();
             _definingTypeByTable.Clear();
+            _customTablesDir = ".";
         }
 
         /// <summary>
@@ -161,7 +184,7 @@ namespace ResXRData
         /// Call this <b>before</b> <see cref="CloseAll"/> — writers must still be open to read
         /// <see cref="CsvRowWriter.RowCount"/>.
         /// </para>
-        /// Consumed by ResXRDataManager to write <c>{sessionTime}_custom_tables_sidecar.json</c>.
+        /// Consumed by ResXRDataManager to write <c>{sessionTime}_CustomTables/{sessionTime}_CustomTables.json</c>.
         /// </summary>
         public static CustomTableSummary[] GetTableSummaries()
         {
@@ -213,7 +236,10 @@ namespace ResXRData
             return result;
         }
 
-        // Create writer + schema for <base>/(<prefix>_)?<ClassName>.csv if not yet created.
+        // Create writer + schema for the table's CSV if not yet created.
+        // [BuiltInTable] types (Events, ResXRDebugLogs) write to _baseDirectory (session root).
+        // All other types write to _customTablesDir ({prefix}_CustomTables subfolder).
+        // This check runs once per table — after initialization the writer is cached and re-used directly.
         private static void EnsureTableInitialized(string tableName, Type dataType)
         {
             if (_writerByTable.ContainsKey(tableName))
@@ -247,7 +273,11 @@ namespace ResXRData
 
             string safeTable = SanitizeFileName(tableName);
             string fileName = string.IsNullOrEmpty(_filePrefix) ? $"{safeTable}.csv" : $"{_filePrefix}_{safeTable}.csv";
-            string path = Path.Combine(_baseDirectory, fileName);
+
+            // Route to session root for [BuiltInTable] types; all others go to the CustomTables subfolder.
+            bool isBuiltIn = dataType.GetCustomAttribute<BuiltInTableAttribute>() != null;
+            string dir = isBuiltIn ? _baseDirectory : _customTablesDir;
+            string path = Path.Combine(dir, fileName);
 
             CsvRowWriter writer = new CsvRowWriter(path, _delimiter);
 
@@ -255,6 +285,17 @@ namespace ResXRData
             _schemaByTable[tableName] = schema;
             _fieldsByTable[tableName] = payloadFields;
             _definingTypeByTable[tableName] = dataType;
+        }
+
+        /// <summary>
+        /// Returns the concrete <see cref="Type"/> that first registered the given table name,
+        /// or <c>null</c> if the table was never written this session. Used by
+        /// <c>ResXRDataManager.BuildCustomTablesJson</c> to check for <see cref="BuiltInTableAttribute"/>.
+        /// </summary>
+        public static Type GetDefiningType(string tableName)
+        {
+            _definingTypeByTable.TryGetValue(tableName, out Type t);
+            return t;
         }
 
         // Returns all public instance fields in declaration order (MetadataToken).

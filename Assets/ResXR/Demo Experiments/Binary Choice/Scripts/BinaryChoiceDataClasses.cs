@@ -38,13 +38,13 @@ namespace ResXRData
 
         [ColumnInfo("Task name or index within the session", Format = "string")]
         public string Task;
-        [ColumnInfo("Trial index within the task", Format = "integer")]
+        [ColumnInfo("Trial index within the task", Format = "integer", Minimum = 0)]
         public int Trial;
-        [ColumnInfo("Name of the image sprite shown in slot A")]
+        [ColumnInfo("Name of the image sprite shown in slot A", Format = "string")]
         public string OptionAName;
-        [ColumnInfo("Name of the image sprite shown in slot B")]
+        [ColumnInfo("Name of the image sprite shown in slot B", Format = "string")]
         public string OptionBName;
-        [ColumnInfo("Name of the chosen image")]
+        [ColumnInfo("Name of the chosen image", Format = "string")]
         public string Choice;
         [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot", Format = "string")]
         public string ChosenOption;

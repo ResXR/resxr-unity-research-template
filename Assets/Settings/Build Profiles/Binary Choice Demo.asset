@@ -173,10 +173,6 @@ MonoBehaviour:
     - line: '|   preloadedAssets:'
     - line: '|   - {fileID: 11400000, guid: bd5e1cafdb78ec247aec660ededc6591, type:
         2}'
-    - line: '|   - {fileID: -6832510543930548252, guid: defe9f001708b2d4a991163f9523dac2,
-        type: 2}'
-    - line: '|   - {fileID: 677025488240970214, guid: df4bf4de266c0e44bafe9095d6e989e8,
-        type: 2}'
     - line: '|   metroInputSource: 0'
     - line: '|   wsaTransparentSwapchain: 0'
     - line: '|   m_HolographicPauseOnTrackingLoss: 1'
@@ -205,7 +201,7 @@ MonoBehaviour:
     - line: '|     iPhone: 0'
     - line: '|     tvOS: 0'
     - line: '|   overrideDefaultApplicationIdentifier: 0'
-    - line: '|   AndroidBundleVersionCode: 96410826'
+    - line: '|   AndroidBundleVersionCode: 96510578'
     - line: '|   AndroidMinSdkVersion: 23'
     - line: '|   AndroidTargetSdkVersion: 0'
     - line: '|   AndroidPreferredInstallLocation: 0'

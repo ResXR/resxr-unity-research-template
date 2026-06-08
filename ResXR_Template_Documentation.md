@@ -646,7 +646,7 @@ ResXRDataManager is a complete data logging system that automatically collects V
 - **Custom Experiment Data**: Define custom data classes for any experiment-specific data; the DataManager creates the CSV, writes headers, and appends rows automatically
 - **Column Documentation**: Annotate each column with `[ColumnInfo("description")]` — enforced at compile time in the Editor; compiled into a sidecar JSON for BIDS-compatible downstream pipelines
 - **Quick Event Markers** (`Events.csv`): Log named experiment milestones with one line — `ResXRDataManager.Instance.ReportEvent("trial_start", Time.realtimeSinceStartup, 0f)` — no class setup needed
-- **On-device Debug Logging** (`ResXRLogs.csv`): Write timestamped notes to CSV during builds via `ResXRDataManager.Instance.LogLineToFile("note")`
+- **On-device Debug Logging** (`ResXRDebugLogs.csv`): Write timestamped notes to CSV during builds via `ResXRDataManager.Instance.LogLineToFile("note")`
 - **CSV Export**: All data exported to organized CSV files
 - **Metadata**: Automatic session metadata generation
 - **Live Monitor**: Real-time data visualization (optional)
@@ -665,14 +665,14 @@ using UnityEngine;
 ResXRDataManager.Instance.ReportEvent("stimulus_onset", Time.realtimeSinceStartup, 0f);
 ```
 
-You can also add your own types implementing `CustomDataClass` (see `ChoiceEvents`, `StimulusBounds`, etc. in `BinaryChoiceDataClasses.cs`, or the built-in `TrialsData`, `events`, `ResXRLogs` in `ResXRDataManager.cs`).
+You can also add your own types implementing `CustomDataClass` (see `ChoiceEvents`, `StimulusBounds`, etc. in `BinaryChoiceDataClasses.cs`, or the built-in `TrialsData`, `Events`, `ResXRDebugLogs` in `ResXRDataManager.cs`).
 
 **Guidelines**:
 - Must implement `CustomDataClass` interface — requires `onset { get; }` and `duration { get; }` properties set in the constructor
 - The CSV filename is taken from the C# class name — a class called `ChoiceEvents` produces `{sessionTime}_ChoiceEvents.csv`. No `TableName` property is needed; just name the class to describe what it records
 - Use public fields (not properties) for data columns — they appear after `onset` and `duration`
 - Always use `Time.realtimeSinceStartup` for `onset` so it aligns with the continuous data clock
-- Optionally annotate fields with `[ColumnInfo]` for BIDS sidecar metadata — `description` is the only required argument; `Units`, `Format`, `Minimum`, `Maximum` are optional named properties. Undecorated fields appear in the CSV and in the custom_tables_sidecar.json with an auto-generated placeholder description (field name prettified, e.g. `ReactionTime` → `"Reaction Time"`). A hard error is logged at session end — add `[ColumnInfo("description")]` to replace the placeholder with accurate metadata. An empty `description` logs a console error at session end; an unrecognised `Format` value does too (see `ColumnInfoAttribute.cs` for the 18 allowed BIDS format strings):
+- Optionally annotate fields with `[ColumnInfo]` for BIDS sidecar metadata — `description` is the only required argument; `Units`, `Format`, `Minimum`, `Maximum` are optional named properties. Undecorated fields appear in the CSV and in the CustomTables sidecar JSON with an auto-generated placeholder description (field name prettified, e.g. `ReactionTime` → `"Reaction Time"`). A hard error is logged at session end — add `[ColumnInfo("description")]` to replace the placeholder with accurate metadata. An empty `description` logs a console error at session end; an unrecognised `Format` value does too (see `ColumnInfoAttribute.cs` for the 18 allowed BIDS format strings):
 
 ```csharp
 using ResXRData;
@@ -709,7 +709,7 @@ Add helper functions in `ResXRDataManager.cs` to log your events, or call `LogCu
 ```csharp
 public void ReportEvent(string name, float onset, float duration)
 {
-    LogCustom(new events(name, onset, duration));
+    LogCustom(new Events(name, onset, duration));
 }
 
 public void LogChoice(string task, int trial, string optionAName, string optionBName, string choice,
@@ -763,8 +763,8 @@ Collectors pull data from the VR system every physics tick and write to CSV file
 **Location**: `Assets/ResXR/Base Scene/ResXRDataManager/Metadata/`
 
 - **BuildInfoLoader.cs** - Loads build information at runtime
-- **SessionMetaWriter.cs** - Writes `session_metadata.json` once at session start (device/platform provenance, tracking origin, reference frames; never modified again)
-- **CustomTablesSidecarWriter.cs** - Writes `{sessionTime}_custom_tables_sidecar.json` at session end; one entry per custom data class with CSV filename, row count, and per-column `[ColumnInfo]` metadata consumed by the Python pipeline to generate `*_events.json` BIDS sidecars
+- **SessionMetaWriter.cs** - Writes `{sessionTime}_SessionMetadata.json` once at session start (device/platform provenance, tracking origin, reference frames; never modified again)
+- **CustomTablesSidecarWriter.cs** - Writes `{sessionTime}_CustomTables/{sessionTime}_CustomTables.json` at session end; one entry per custom data class with CSV filename, row count, and per-column `[ColumnInfo]` metadata consumed by the Python pipeline to generate `*_events.json` BIDS sidecars. Built-in tables (Events, ResXRDebugLogs) are excluded.
 
 ##### Live Monitor
 
@@ -788,8 +788,8 @@ Collectors → RowBuffer → CsvRowWriter → CSV files
 - **ContinuousData.csv** - All continuous tracking data (head, hands, eyes, body, face, custom transforms). Gaze columns include combined (FocusedObject, EyeGazeHitPosition) and, when the "Include Separate Eyes Gaze" recording option is enabled, per-eye hit points and focused objects.
 - **FaceExpressions.csv** - Face expression weights
 - **Custom Event CSVs** - One CSV per custom data class (e.g., `ChoiceEvents.csv`, `{sessionTime}_Events.csv` from the template `ReportEvent` type)
-- **session_metadata.json** - Session information, schema details, device/platform provenance (manufacturers_model_name_raw, software_versions_raw), tracking_origin_type (Meta), reference_frames (UnityWorld/HandLocal for later *_channels.json), and device_utc_offset (DST-aware). Includes **build_info_available**: when true, build_id, git_commit, and utc_build_iso8601 are set from build_info.json; when false, those three fields are left empty (no placeholders). A Python pipeline can use this to generate BIDS motion files.
-- **{sessionTime}_custom_tables_sidecar.json** - Written at session end. One entry per custom data class used during the session: CSV filename, row count, and per-column `[ColumnInfo]` metadata. Consumed by the Python pipeline to generate `*_events.json` BIDS sidecar files.
+- **{sessionTime}_SessionMetadata.json** - Session information, schema details, device/platform provenance (manufacturers_model_name_raw, software_versions_raw), tracking_origin_type (Meta), reference_frames (UnityWorld/HandLocal for later *_channels.json), and device_utc_offset (DST-aware). Includes **build_info_available**: when true, build_id, git_commit, and utc_build_iso8601 are set from build_info.json; when false, those three fields are left empty (no placeholders). A Python pipeline can use this to generate BIDS motion files.
+- **{sessionTime}_CustomTables/{sessionTime}_CustomTables.json** - Written at session end. One entry per experiment-specific custom data class used during the session: CSV filename, row count, and per-column `[ColumnInfo]` metadata (PascalCase keys). Built-in tables (Events, ResXRDebugLogs) are excluded. Consumed by the Python pipeline to generate `*_events.json` BIDS sidecar files.
 
 #### FAQ
 

@@ -37,9 +37,9 @@ namespace ResXRData
 
         [ColumnInfo("Task name or index within the session", Format = "string")]
         public string Task;
-        [ColumnInfo("Trial index within the task", Format = "integer")]
+        [ColumnInfo("Trial index within the task", Format = "integer", Minimum = 0)]
         public int Trial;
-        [ColumnInfo("Name of the image that was rated")]
+        [ColumnInfo("Name of the image that was rated", Format = "string")]
         public string ImageName;
         [ColumnInfo("Slider value as selected by the participant; see SliderConfig table for scale boundaries", Format = "number")]
         public float RawRating;

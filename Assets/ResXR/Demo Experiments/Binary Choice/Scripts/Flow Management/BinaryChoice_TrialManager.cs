@@ -65,7 +65,7 @@ public class BinaryChoice_TrialManager : ResXRSingleton<BinaryChoice_TrialManage
 
         TrialsData.Log(
             _currentTaskName,
-            _currentTrialIndex.ToString(),
+            _currentTrialIndex,
             trialName,
             _trialStartTime,
             endTime

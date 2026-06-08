@@ -79,8 +79,8 @@ Recording options (inspector):
   Minimum and Maximum are optional double bounds; omit if not applicable.
 
   At session end, C# reflection reads these attributes and writes them into
-  {sessionTime}_custom_tables_sidecar.json. The Python pipeline then reads that JSON to
-  generate *_events.json BIDS sidecar files.
+  {sessionTime}_CustomTables/{sessionTime}_CustomTables.json. The Python pipeline then
+  reads that JSON to generate *_events.json BIDS sidecar files.
   Undecorated fields appear in the CSV and in the sidecar with an auto-generated placeholder
   description (field name prettified, e.g. "ReactionTime" → "Reaction Time"). A hard error
   is logged at session end — add [ColumnInfo("description")] to replace the placeholder.
@@ -138,12 +138,38 @@ don’t need to edit them. For details of those columns,
 refer to data_sources_README.txt.
 
 
-2. METADATA
+2. OUTPUT FOLDER STRUCTURE
+-----------------------------------------------------
+
+Each session is written into its own subfolder:
+
+  {persistentDataPath}/
+    2026.06.04_09-55/
+      2026.06.04_09-55_ContinuousData.csv
+      2026.06.04_09-55_Events.csv
+      2026.06.04_09-55_FaceExpressionData.csv
+      2026.06.04_09-55_ResXRDebugLogs.csv
+      2026.06.04_09-55_SessionMetadata.json
+      2026.06.04_09-55_CustomTables/
+        2026.06.04_09-55_ChoiceEvents.csv
+        2026.06.04_09-55_CustomTables.json
+        2026.06.04_09-55_StimulusBounds.csv
+        2026.06.04_09-55_TrialsData.csv
+
+ContinuousData, FaceExpressionData, Events, ResXRDebugLogs,
+and SessionMetadata sit at the session root.
+Experiment-specific custom tables and their sidecar JSON
+go into the {sessionTime}_CustomTables/ subfolder.
+The Python pipeline reads the structure as-is; no manual
+reorganisation is needed.
+
+
+3. METADATA
 -----------------------------------------------------
 
 Each session is accompanied by two JSON files:
 
-- session_metadata.json
+- {sessionTime}_SessionMetadata.json
   Written once at session start by SessionMetaWriter.cs; never modified again.
   Designed to support later Motion-BIDS export (a Python pipeline
   generates the actual BIDS files; no *_scans.tsv or *_channels.json
@@ -168,24 +194,28 @@ Each session is accompanied by two JSON files:
       is true. When false, these are left empty (no placeholders) so the pipeline
       can treat them as "not available".
 
-- {sessionTime}_custom_tables_sidecar.json
+- {sessionTime}_CustomTables/{sessionTime}_CustomTables.json
   Written at session end by CustomTablesSidecarWriter.cs (before CSV files are closed).
-  Contains one entry per custom data class used during the session (e.g. ChoiceEvents,
-  TrialsData, events), listing the CSV filename, row count, and per-column metadata
-  sourced from [ColumnInfo] annotations (description, units, levels, format, min, max).
+  Located in the {sessionTime}_CustomTables/ subfolder alongside the custom CSVs.
+  Contains one entry per experiment-specific data class used during the session
+  (e.g. ChoiceEvents, TrialsData), listing the CSV filename, row count, and per-column
+  metadata sourced from [ColumnInfo] annotations (Description, Units, Levels,
+  Format, Minimum, Maximum — all PascalCase keys).
+  Built-in tables (Events, ResXRDebugLogs) are excluded from this sidecar.
   Consumed by the ResXR Python pipeline post-experiment to auto-generate
   *_events.json BIDS sidecar files for each custom CSV. Because all custom tables
   share the same onset/duration clock as ContinuousData.csv, the pipeline can also
   merge them into a single BIDS events file.
-  Any validation errors (empty descriptions, unrecognised Format values) are written
-  to both Debug.LogError and ResXRDebugLogs.csv before this file is written.
+  Any validation errors (empty descriptions, unrecognised Format values, cross-table
+  column conflicts) are written to both Debug.LogError and ResXRDebugLogs.csv
+  before this file is written.
 
-Together, this guarantees reproducibility: you know 
-exactly which build and session produced the data and under which 
+Together, this guarantees reproducibility: you know
+exactly which build and session produced the data and under which
 settings.
 
 (There is also a file called build_info.json generated at build time and embadded in the apk;
-when present and loaded, its values are written into session_metadata.
+when present and loaded, its values are written into SessionMetadata.
 When missing or not yet loaded, build_info_available is false and the
 three build fields above are left empty.)
 
@@ -239,11 +269,12 @@ D) Metadata
 - AutoBuildInfo.cs: runs in Unity Editor at build time,
   writes build_info.json, appends build id to version.
 - BuildInfoLoader.cs: loads build_info.json at runtime.
-- SessionMetaWriter.cs: writes session_metadata.json
+- SessionMetaWriter.cs: writes {sessionTime}_SessionMetadata.json
   once at session start (never modified again).
 - CustomTablesSidecarWriter.cs: writes
-  {sessionTime}_custom_tables_sidecar.json at session end
-  with per-table and per-column metadata for the pipeline.
+  {sessionTime}_CustomTables/{sessionTime}_CustomTables.json
+  at session end with per-table and per-column metadata for the pipeline.
+  Built-in tables (Events, ResXRDebugLogs) are excluded.
 
 -----------------------------------------------------
 

@@ -67,7 +67,7 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
 
         TrialsData.Log(
             _currentTaskName,
-            _currentTrialIndex.ToString(),
+            _currentTrialIndex,
             trialName,
             _trialStartTime,
             endTime

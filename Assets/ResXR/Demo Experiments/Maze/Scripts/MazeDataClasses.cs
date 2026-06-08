@@ -39,9 +39,9 @@ namespace ResXRData
 
         [ColumnInfo("Task name or index within the session", Format = "string")]
         public string Task;
-        [ColumnInfo("Trial index within the task", Format = "integer")]
+        [ColumnInfo("Trial index within the task", Format = "integer", Minimum = 0)]
         public int Trial;
-        [ColumnInfo("Human-readable unique trial name, e.g. maze_t0_t3")]
+        [ColumnInfo("Human-readable unique trial identifier", Format = "string")]
         public string TrialName;
         [ColumnInfo("Whether the maze orientation was randomised at trial start", Format = "boolean")]
         public bool MazeRotatedAtStart;

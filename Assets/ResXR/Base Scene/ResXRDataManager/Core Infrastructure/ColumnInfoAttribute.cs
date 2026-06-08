@@ -1,10 +1,10 @@
 // ColumnInfoAttribute.cs
 // Annotates a public field on a CustomDataClass with BIDS-compatible column metadata.
 // At session end, C# reflection (CustomCsvFromDataClass.GetTableSummaries) reads these
-// attributes and writes them into {sessionTime}_custom_tables_sidecar.json.
+// attributes and writes them into {sessionTime}_CustomTables/{sessionTime}_CustomTables.json.
 // The Python pipeline then reads that JSON to generate *_events.json BIDS sidecar files.
 //
-// Undecorated fields still appear in the CSV and in the custom_tables_sidecar.json
+// Undecorated fields still appear in the CSV and in the CustomTables sidecar JSON
 // with an auto-generated placeholder description (the field name prettified, e.g.
 // "ReactionTime" → "Reaction Time"). A hard error is logged at session end — add
 // [ColumnInfo("description")] to replace the placeholder with accurate metadata.
@@ -60,9 +60,9 @@ namespace ResXRData
     /// <summary>
     /// Attach to any public field of a <see cref="CustomDataClass"/> to provide
     /// BIDS sidecar metadata. At session end, C# reflection reads these attributes and
-    /// writes them into <c>{sessionTime}_custom_tables_sidecar.json</c>; the Python
+    /// writes them into <c>{sessionTime}_CustomTables/{sessionTime}_CustomTables.json</c>; the Python
     /// pipeline then reads that JSON to generate <c>*_events.json</c> BIDS sidecars.
-    /// Undecorated fields are included in the CSV and in the custom_tables_sidecar.json with
+    /// Undecorated fields are included in the CSV and in the CustomTables sidecar JSON with
     /// an auto-generated placeholder description (field name prettified). A hard error is
     /// logged at session end — add <c>[ColumnInfo("description")]</c> to replace the placeholder.
     /// </summary>

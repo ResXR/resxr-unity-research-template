@@ -121,7 +121,7 @@ public class ChoiceEvents : CustomDataClass
 Every public field **must** have a `[ColumnInfo]` annotation. This is enforced at two points:
 
 - **Editor (after every compile)**: `CustomDataClassValidator.cs` (`[InitializeOnLoad]`) logs a hard error in the Unity Console for any unannotated field — `[ResXR: CustomDataClassValidator]`
-- **Runtime (session end)**: `ValidateColumnAnnotations()` runs again and writes to both `Debug.LogError` and `ResXRLogs.csv`
+- **Runtime (session end)**: `ValidateColumnAnnotations()` runs again and writes to both `Debug.LogError` and `ResXRDebugLogs.csv`
 
 If annotation is missing or description is empty, the field name is prettified as a placeholder (e.g. `ReactionTime` → `"Reaction Time"`) and written to the sidecar — but this is a fallback, not accurate documentation.
 
@@ -175,7 +175,7 @@ stimuli_relative, hed_version
 
 #### What [ColumnInfo] produces at session end
 
-At session end, C# reflection reads all `[ColumnInfo]` attributes across every custom table used in the session, and writes `{sessionTime}_custom_tables_sidecar.json`. The ResXR Python pipeline reads that file to:
+At session end, C# reflection reads all `[ColumnInfo]` attributes across every custom table used in the session, and writes `{sessionTime}_CustomTables/{sessionTime}_CustomTables.json`. The ResXR Python pipeline reads that file to:
 - Auto-generate `*_events.json` BIDS sidecar files for each custom CSV
 - Merge all custom tables into a single BIDS events file (all tables share the `onset`/`duration` clock from `ContinuousData.csv`)
 
@@ -209,7 +209,7 @@ The template ships with several ready-to-use custom data classes in `ResXRDataMa
 
 ---
 
-#### `events` — Quick event markers
+#### `Events` — Quick event markers
 
 **CSV:** `{sessionTime}_Events.csv` &nbsp;|&nbsp; **Columns:** `onset`, `duration`, `name`
 
@@ -227,11 +227,11 @@ ResXRDataManager.Instance.ReportEvent("stimulus", stimStart, Time.realtimeSinceS
 
 ---
 
-#### `ResXRLogs` — On-device debug logging
+#### `ResXRDebugLogs` — On-device debug logging
 
-**CSV:** `{sessionTime}_ResXRLogs.csv` &nbsp;|&nbsp; **Columns:** `onset`, `duration`, `message`
+**CSV:** `{sessionTime}_ResXRDebugLogs.csv` &nbsp;|&nbsp; **Columns:** `onset`, `duration`, `message`
 
-Writes timestamped text notes to a CSV file alongside all other session data. This is invaluable when debugging on a Quest headset where the Unity Console is not accessible. After the session, pull the files off the device and open `ResXRLogs.csv` to see exactly what happened and when.
+Writes timestamped text notes to a CSV file alongside all other session data. This is invaluable when debugging on a Quest headset where the Unity Console is not accessible. After the session, pull the files off the device and open `ResXRDebugLogs.csv` to see exactly what happened and when.
 
 The DataManager itself writes here when it detects `[ColumnInfo]` annotation errors — so validation problems will also appear in this file.
 
@@ -240,7 +240,7 @@ ResXRDataManager.Instance.LogLineToFile("trial 3 started");
 ResXRDataManager.Instance.LogLineToFile($"stimulus loaded: {stimulusName}");
 ```
 
-> *The Unity Console can be accessed on-device via `adb logcat` — `ResXRLogs` is a simpler alternative that lives directly in your session data folder.*
+> *The Unity Console can be accessed on-device via `adb logcat` — `ResXRDebugLogs` is a simpler alternative that lives directly in your session data folder.*
 
 ---
 
@@ -311,7 +311,7 @@ Every session produces two JSON files alongside the CSVs. These files are not in
 
 ---
 
-### `session_metadata.json`
+### `{sessionTime}_SessionMetadata.json`
 
 Written **once at session start** by `SessionMetaWriter.cs`. Never modified again after that point.
 
@@ -330,27 +330,27 @@ Written **once at session start** by `SessionMetaWriter.cs`. Never modified agai
 | `sampling_mode`, `fixedDeltaTime` | Documents the recording rate |
 | `data_sources` | Compact map of which CSV files were written and their schema |
 
-> There is also a `build_info.json` generated at build time and embedded in the APK by `AutoBuildInfo.cs`. When present and loaded, its values are written into `session_metadata.json`. When missing, `build_info_available` is `false` and the three build fields are left empty.
+> There is also a `build_info.json` generated at build time and embedded in the APK by `AutoBuildInfo.cs`. When present and loaded, its values are written into `{sessionTime}_SessionMetadata.json`. When missing, `build_info_available` is `false` and the three build fields are left empty.
 
 ---
 
-### `{sessionTime}_custom_tables_sidecar.json`
+### `{sessionTime}_CustomTables/{sessionTime}_CustomTables.json`
 
-Written **at session end** by `CustomTablesSidecarWriter.cs`, before CSV files are closed. Contains one entry per custom data class actually used during the session.
+Written **at session end** by `CustomTablesSidecarWriter.cs`, before CSV files are closed. Placed in the `{sessionTime}_CustomTables/` subfolder alongside the custom table CSVs. Contains one entry per experiment-specific data class used during the session. Built-in tables (`Events`, `ResXRDebugLogs`) are excluded — they are not merged by the pipeline.
 
 Example structure:
 ```json
 {
-  "custom_tables": {
+  "CustomTables": {
     "ChoiceEvents": {
-      "file": "2026.06.03_14-22_ChoiceEvents.csv",
-      "row_count": 48,
-      "columns": {
-        "onset":        { "description": "Time since app start when the event was logged", "units": "s", "Format": "number", "Minimum": 0 },
-        "duration":     { "description": "Event duration in seconds; 0 for point events",  "units": "s", "Format": "number", "Minimum": 0 },
-        "Choice":       { "description": "Name of the chosen image", "units": "n/a" },
-        "ChosenOption": { "description": "Slot chosen by the participant", "units": "n/a", "Levels": { "A": "Left slot", "B": "Right slot" } },
-        "ReactionTime": { "description": "Seconds from stimulus display to choice", "units": "s", "Format": "number", "Minimum": 0 }
+      "File": "2026.06.03_14-22_ChoiceEvents.csv",
+      "RowCount": 48,
+      "Columns": {
+        "onset":        { "Description": "Time since app start when the event was logged", "Units": "s", "Format": "number", "Minimum": 0 },
+        "duration":     { "Description": "Event duration in seconds; 0 for point events",  "Units": "s", "Format": "number", "Minimum": 0 },
+        "Choice":       { "Description": "Name of the chosen image", "Units": "n/a", "Format": "string" },
+        "ChosenOption": { "Description": "Slot chosen by the participant", "Units": "n/a", "Format": "string", "Levels": { "A": "Left slot", "B": "Right slot" } },
+        "ReactionTime": { "Description": "Seconds from stimulus display to choice", "Units": "s", "Format": "number", "Minimum": 0 }
       }
     }
   }
@@ -361,7 +361,7 @@ The pipeline reads this file to:
 - Auto-generate `*_events.json` BIDS sidecar files for each custom CSV
 - Merge all custom tables into a single BIDS events file (all tables share the same `onset`/`duration` clock as `ContinuousData.csv`)
 
-Any validation errors (missing `[ColumnInfo]`, empty descriptions, unrecognised `Format` values) are written to both `Debug.LogError` and `ResXRLogs.csv` before this file is written.
+Any validation errors (missing `[ColumnInfo]`, empty descriptions, unrecognised `Format` values, cross-table column conflicts) are written to both `Debug.LogError` and `ResXRDebugLogs.csv` before this file is written.
 
 > **Note:** Fields with no annotation or an empty description still appear in the sidecar, using the prettified field name as a placeholder (e.g. `ReactionTime` → `"Reaction Time"`). A hard error is logged — replace with a proper `[ColumnInfo("description")]` for accurate BIDS metadata.
 
@@ -376,7 +376,7 @@ You do not need to read this section to use the DataManager. It is here for cont
 The system is divided into four layers:
 
 **A) Orchestrator** — `ResXRDataManager.cs`  
-Sets up all schemas, opens all CSV writers, and drives collectors every `FixedUpdate`. On session end (`OnDestroy`), validates annotations, writes the custom tables sidecar, then closes all files in the correct order.
+Sets up all schemas, opens all CSV writers, and drives collectors every `FixedUpdate`. At session start, creates a per-session subfolder `{sessionTime}/` inside the root output path. On session end (`OnDestroy`), validates annotations, writes the custom tables sidecar, then closes all files in the correct order.
 
 **B) Core Infrastructure** — `Core Infrastructure/`
 
@@ -409,8 +409,8 @@ Each collector reads from one OVR subsystem and fills the row buffer. They run e
 |---|---|
 | `AutoBuildInfo.cs` | Editor-only; runs at build time, writes `build_info.json`, stamps version fields |
 | `BuildInfoLoader.cs` | Loads `build_info.json` at runtime |
-| `SessionMetaWriter.cs` | Writes `session_metadata.json` once at session start |
-| `CustomTablesSidecarWriter.cs` | Writes `{sessionTime}_custom_tables_sidecar.json` at session end |
+| `SessionMetaWriter.cs` | Writes `{sessionTime}_SessionMetadata.json` once at session start |
+| `CustomTablesSidecarWriter.cs` | Writes `{sessionTime}_CustomTables/{sessionTime}_CustomTables.json` at session end |
 
 ### Data collection flow
 
@@ -420,7 +420,7 @@ FixedUpdate (100 Hz)
        └─ CsvRowWriter.WriteRow → immediate disk flush (crash-safe)
 
 OnDestroy (session end)
-  └─ ValidateColumnAnnotations()       ← hard errors + ResXRLogs for annotation problems
+  └─ ValidateColumnAnnotations()       ← hard errors + ResXRDebugLogs for annotation problems
   └─ BuildCustomTablesJson()
   └─ CustomTablesSidecarWriter.Write() ← writes sidecar JSON
   └─ All CsvRowWriters disposed
@@ -456,10 +456,13 @@ A: Whenever your reporter function is called. Custom events are not tied to the 
 **Q: What if Unity crashes — will I lose data?**  
 A: No. `CsvRowWriter` flushes every row to disk immediately. Only the row actively being written at the crash moment is at risk.
 
+**Q: Can two custom tables share a column name?**  
+A: Yes, but their `[ColumnInfo]` annotations must be **identical** — same description, units, format, levels, min/max. The Python pipeline merges all custom tables into one BIDS events table, so a column named `Trial` in `TrialsData` and `ChoiceEvents` becomes a single column. If the annotations differ, the merged sidecar will have conflicting metadata. Both `CustomDataClassValidator` (Editor, on every compile) and `ValidateColumnAnnotations` (runtime, at session end) enforce this as a hard error.
+
 **Q: Why must I call `Application.Quit()` at the end of the session?**  
-A: All cleanup — flushing CSV rows and writing `{sessionTime}_custom_tables_sidecar.json` — runs in `ResXRDataManager.OnDestroy()`. This only triggers reliably when the app exits cleanly via `Application.Quit()`. If the OS kills the process instead (e.g. the user removes their headset), the sidecar JSON may be missing and the last CSV rows may not have been written. Always make `Application.Quit()` the last line of `EndSession()`.
+A: All cleanup — flushing CSV rows and writing `{sessionTime}_CustomTables/{sessionTime}_CustomTables.json` — runs in `ResXRDataManager.OnDestroy()`. This only triggers reliably when the app exits cleanly via `Application.Quit()`. If the OS kills the process instead (e.g. the user removes their headset), the sidecar JSON may be missing and the last CSV rows may not have been written. Always make `Application.Quit()` the last line of `EndSession()`.
 
 **Q: How do I debug on device?**  
-A: Use `ResXRDataManager.Instance.LogLineToFile("your message")` — it writes a timestamped row to `ResXRLogs.csv` alongside your other session files. Pull the files off the device after the session. *(adb logcat gives you raw Unity logs too — ResXRLogs is just more convenient and lives with your data.)*
+A: Use `ResXRDataManager.Instance.LogLineToFile("your message")` — it writes a timestamped row to `ResXRDebugLogs.csv` alongside your other session files. Pull the files off the device after the session. *(adb logcat gives you raw Unity logs too — ResXRDebugLogs is just more convenient and lives with your data.)*
 
 **Note:** Enum and flag fields are written as strings (e.g. `"High"`, `"Calibrating"`, `"Tracked|OrientationValid"`) for readability in CSV tools.
