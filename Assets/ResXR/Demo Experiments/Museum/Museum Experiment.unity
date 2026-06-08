@@ -1982,6 +1982,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4976096047730716755, guid: a4f6296ccde06f24494dd81bc9a9d158, type: 3}
+      propertyPath: hideOnStart
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4976096047730716755, guid: a4f6296ccde06f24494dd81bc9a9d158, type: 3}
       propertyPath: CurrentValue
       value: 5
       objectReference: {fileID: 0}
