@@ -175,6 +175,11 @@ namespace ResXRData
         private ColumnIndex _continuousSchema;
         private ColumnIndex _faceSchema;
 
+        // schema allocation counts (set once in DoInAwake; read by WriteMetadata and ValidateSchemaVsDevice)
+        private int _schemaHandBonesCount;
+        private int _schemaBodyJointsCount;
+        private int _schemaFaceExpressionsCount;
+
         // row buffers
         private RowBuffer _continuousRow;
         private RowBuffer _faceRow;
@@ -286,6 +291,9 @@ namespace ResXRData
             var cont = SchemaFactories.BuildContinuousDataV2(recordingOptions);   // (schema, counts, flags)
             _continuousSchema = cont.schema;
             _faceSchema = face.schema;
+            _schemaHandBonesCount       = recordingOptions.includeHands   ? cont.handBones    : 0;
+            _schemaBodyJointsCount      = recordingOptions.includeBody    ? cont.bodyJoints   : 0;
+            _schemaFaceExpressionsCount = recordFaceExpressions           ? face.faceExprCount : 0;
 
             // 4) Initialize tracking space converter for world space conversion
             OVRCameraRig cameraRig = FindFirstObjectByType<OVRCameraRig>();
@@ -338,7 +346,7 @@ namespace ResXRData
             CustomCsvFromDataClass.Initialize(_sessionDir, csvDelimiter, sessionTime);
 
             // 9) Metadata (async so build info can load first; recording already set up)
-            WriteMetadataAsync(face.faceExprCount).Forget();
+            WriteMetadataAsync().Forget();
         }
 
         private async void Start()
@@ -350,6 +358,8 @@ namespace ResXRData
             {
                 await StartBodyTrackingAsync(BodyJointSet.FullBody, BodyTrackingFidelity2.High);
             }
+
+            ValidateSchemaVsDevice();
         }
 
         private void FixedUpdate()
@@ -525,20 +535,15 @@ namespace ResXRData
 
         #region METADATA
 
-        private async UniTaskVoid WriteMetadataAsync(int faceExprCount)
+        private async UniTaskVoid WriteMetadataAsync()
         {
             if (BuildInfoLoader.Instance != null)
                 await BuildInfoLoader.Instance.LoadAsync();
-            WriteMetadata(faceExprCount);
+            WriteMetadata();
         }
 
-        private void WriteMetadata(int? faceExprCount = null)
+        private void WriteMetadata()
         {
-            // 0) Capture skeletons once (if hands are enabled)
-            OVRPlugin.Skeleton2 leftSkel = default, rightSkel = default;
-            bool haveLeft = recordingOptions.includeHands && OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandLeft, ref leftSkel);
-            bool haveRight = recordingOptions.includeHands && OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandRight, ref rightSkel);
-
             // 1) Build the object
             var meta = new SessionMetaData
             {
@@ -585,6 +590,7 @@ namespace ResXRData
                 // Motion-BIDS provenance (for pipeline)
                 manufacturers_model_name_raw = SystemInfo.deviceModel ?? "",
                 software_versions_raw = SystemInfo.operatingSystem ?? "",
+                horizon_os_version = GetHorizonOSVersion(),
                 device_serial_number = "",
                 device_serial_number_note = "It is no longer possible to reliably get the unique hardware serial number of a Meta Quest device from within a Unity application due to privacy restrictions imposed by Android 10 and later",
 
@@ -607,13 +613,10 @@ namespace ResXRData
             };
 
 
-            // fill detected_hand_bones if we have a skeleton
-            if (haveLeft) meta.detected_hand_bones = Math.Max(meta.detected_hand_bones, (int)leftSkel.NumBones);
-            if (haveRight) meta.detected_hand_bones = Math.Max(meta.detected_hand_bones, (int)rightSkel.NumBones);
-
-            // detected_face_expr_count (from schema when face recording enabled)
-            if (recordFaceExpressions && faceExprCount.HasValue)
-                meta.detected_face_expr_count = faceExprCount.Value;
+            // schema allocation sizes (match exactly what was used to build the CSV columns)
+            meta.schema_hand_bones       = _schemaHandBonesCount;
+            meta.schema_body_joints      = _schemaBodyJointsCount;
+            meta.schema_face_expressions = _schemaFaceExpressionsCount;
 
             // Build info: only set build_id, git_commit, utc_build_iso8601 when available (no placeholders)
             BuildInfo bi = BuildInfoLoader.Instance?.Current;
@@ -639,6 +642,66 @@ namespace ResXRData
 
             // 4) Finally write
             SessionMetaWriter.WriteInitial(GetOutputDirectory(), SessionTime, meta);
+        }
+
+        // Called from Start() after body tracking is initialised (so GetSkeleton2(Body) returns live data).
+        // Compares the live device bone/joint counts against the schema allocation used to build the CSV.
+        // A mismatch means the CSV has padding or truncated columns — log loudly so it can't be missed.
+        private void ValidateSchemaVsDevice()
+        {
+            if (recordingOptions.includeHands)
+            {
+                OVRPlugin.Skeleton2 leftSkel = default, rightSkel = default;
+                bool haveLeft  = OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandLeft,  ref leftSkel);
+                bool haveRight = OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandRight, ref rightSkel);
+                if (haveLeft || haveRight)
+                {
+                    int liveCount = 0;
+                    if (haveLeft)  liveCount = Math.Max(liveCount, (int)leftSkel.NumBones);
+                    if (haveRight) liveCount = Math.Max(liveCount, (int)rightSkel.NumBones);
+                    if (liveCount != _schemaHandBonesCount)
+                    {
+                        string msg = $"[ResXR] Hand bone count mismatch: schema allocated {_schemaHandBonesCount} columns but device reported {liveCount}. Hand bone columns in ContinuousData.csv may be padded or truncated.";
+                        Debug.LogError(msg);
+                        LogLineToFile(msg);
+                    }
+                }
+            }
+
+            if (recordingOptions.includeBody)
+            {
+                OVRPlugin.Skeleton2 bodySkel = default;
+                if (OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.Body, ref bodySkel) && bodySkel.NumBones > 0)
+                {
+                    int liveCount = (int)bodySkel.NumBones;
+                    if (liveCount != _schemaBodyJointsCount)
+                    {
+                        string msg = $"[ResXR] Body joint count mismatch: schema allocated {_schemaBodyJointsCount} columns but device reported {liveCount}. Body joint columns in ContinuousData.csv may be padded or truncated.";
+                        Debug.LogError(msg);
+                        LogLineToFile(msg);
+                    }
+                }
+            }
+        }
+
+        private static string GetHorizonOSVersion()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                using var systemProps = new AndroidJavaClass("android.os.SystemProperties");
+                return systemProps.CallStatic<string>("get", "ro.hzos.build.display_name", "unknown");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ResXR] Failed to read Horizon OS version: {e.Message}");
+                return "unknown";
+            }
+#elif UNITY_EDITOR
+            return "editor";
+#else
+            return "n/a"; // PCVR / Windows standalone
+#endif
         }
 
         /// <summary>

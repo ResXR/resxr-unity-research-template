@@ -77,16 +77,15 @@ namespace ResXRData
         public bool eyes_enabled;
         public bool controllers_enabled;
 
-        // ---- Detected skeleton sizes (for traceability) ----
-        public int detected_hand_bones = 0;
-        public bool overprovisioned_hand_bones = false;
-        public int detected_body_joints = 0;
-        public bool overprovisioned_body_joints = false;
-        public int detected_face_expr_count = 0;
+        // ---- Schema allocation sizes (column counts used to build the CSV; 0 = modality disabled) ----
+        public int schema_hand_bones = 0;
+        public int schema_body_joints = 0;
+        public int schema_face_expressions = 0;
 
         // ---- Motion-BIDS / motion.json provenance (for pipeline) ----
         public string manufacturers_model_name_raw = "";
         public string software_versions_raw = "";
+        public string horizon_os_version = "";
         public string device_serial_number = "";
         public string device_serial_number_note = "";
 
