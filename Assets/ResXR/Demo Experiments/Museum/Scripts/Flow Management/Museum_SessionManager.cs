@@ -43,13 +43,17 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
         Museum_SceneReferencer.Instance.imagesRating.LogSliderConfig();
 
         // Artwork bounds: written once per session (world-space bounds + orientation per artwork)
-        LogArtworkBounds();
+        RecordArtworkBounds();
     }
 
 
     private void EndSession()
     {
         ResXRDataManager.Instance.ReportEvent("session_end", Time.realtimeSinceStartup, 0f);
+
+        // Remember to call Application.Quit() here — this triggers ResXRDataManager's
+        // OnDestroy() cleanup: the session sidecar JSON is written and all CSV files are
+        // flushed before the app closes. Skipping it risks incomplete output files.
         Application.Quit();
     }
 
@@ -59,11 +63,11 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
     }
 
     /// <summary>
-    /// Writes one ArtworkBoundsRow per artwork assigned in Museum_SceneReferencer.
+    /// Writes one ArtworkBounds row per artwork assigned in Museum_SceneReferencer.
     /// artworks and artworkColliders must be the same length and in the same order.
     /// Call once at session start. Wire up both arrays in the Inspector before building.
     /// </summary>
-    private void LogArtworkBounds()
+    private void RecordArtworkBounds()
     {
         Renderer[] artworks = Museum_SceneReferencer.Instance.artworks;
         Collider[] colliders = Museum_SceneReferencer.Instance.artworkColliders;
@@ -86,7 +90,7 @@ public class Museum_SessionManager : ResXRSingleton<Museum_SessionManager>
         {
             if (artworks[i] == null) { Debug.LogError($"[Museum_SessionManager] artworks[{i}] is null — skipping."); continue; }
             if (colliders[i] == null) { Debug.LogError($"[Museum_SessionManager] artworkColliders[{i}] is null — skipping."); continue; }
-            ResXRDataManager.Instance.LogCustom(new ArtworkBoundsRow(t, artworks[i], colliders[i]));
+            ArtworkBounds.Log(t, artworks[i], colliders[i]);
             logged++;
         }
 

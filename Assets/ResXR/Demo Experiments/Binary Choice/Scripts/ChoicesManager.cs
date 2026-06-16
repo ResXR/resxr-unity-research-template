@@ -41,18 +41,18 @@ public class ChoicesManager : MonoBehaviour
 
     private static bool _stimulusBoundsLogged;
 
-    public void LogStimulusBoundsOnce()
+    public void RecordStimulusBounds()
     {
         if (_stimulusBoundsLogged) return;
         _stimulusBoundsLogged = true;
 
         float t = Time.realtimeSinceStartup;
 
-        LogBoundsForChoice(choiceA, "A", t);
-        LogBoundsForChoice(choiceB, "B", t);
+        RecordBoundsForChoice(choiceA, "A", t);
+        RecordBoundsForChoice(choiceB, "B", t);
     }
 
-    private void LogBoundsForChoice(Choice choice, string choiceId, float timeSinceStart)
+    private void RecordBoundsForChoice(Choice choice, string choiceId, float timeSinceStart)
     {
         bool wasActive = choice.gameObject.activeSelf;
         if (!wasActive)
@@ -83,8 +83,7 @@ public class ChoicesManager : MonoBehaviour
         if (!wasActive)
             choice.gameObject.SetActive(false);
 
-        var data = new StimulusBounds(timeSinceStart, choiceId, rcX, rcY, rcZ, rsX, rsY, rsZ, ccX, ccY, ccZ, csX, csY, csZ);
-        ResXRDataManager.Instance.LogCustom(data);
+        StimulusBounds.Log(timeSinceStart, choiceId, rcX, rcY, rcZ, rsX, rsY, rsZ, ccX, ccY, ccZ, csX, csY, csZ);
     }
 
     public async UniTask<ChoiceResult> SetImagesAndWaitForChoice(StimuliPair pair)

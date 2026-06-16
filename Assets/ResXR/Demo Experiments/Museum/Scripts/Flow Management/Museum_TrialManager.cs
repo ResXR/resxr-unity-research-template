@@ -65,18 +65,13 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
         float endTime = Time.realtimeSinceStartup;
         string trialName = $"{_currentTaskName}_t{_currentTrialIndex}";
 
-        ResXRDataManager.Instance.ReportEvent(
-            $"trial_end:{trialName}",
-            endTime, 0f);
-
-        ResXRDataManager.Instance.LogCustom(new TrialsData(
-            ResXRDataManager.Instance.SessionTime,
+        TrialsData.Log(
             _currentTaskName,
-            _currentTrialIndex.ToString(),
+            _currentTrialIndex,
             trialName,
             _trialStartTime,
             endTime
-        ));
+        );
     }
 
     private void Update()
@@ -101,7 +96,7 @@ public class Museum_TrialManager : ResXRSingleton<Museum_TrialManager>
     private async UniTask RunImagesRating()
     {
         // Show image and collect rating. Task name and trial index are passed through so
-        // ImagesRating can write the ImageRatingRow with full context.
+        // ImagesRating can write the ImageRatings row with full context.
         await Museum_SceneReferencer.Instance.imagesRating
             .ShowNextImageAndWaitForRank(_currentTaskName, _currentTrialIndex);
 

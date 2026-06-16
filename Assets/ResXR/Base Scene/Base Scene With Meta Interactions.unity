@@ -2512,7 +2512,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3218453330121799869, guid: 4cba690ca96e6b14fae904cb9db7120b, type: 3}
       propertyPath: recordingOptions.includeBody
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3218453330121799869, guid: 4cba690ca96e6b14fae904cb9db7120b, type: 3}
       propertyPath: recordingOptions.includeSeparateEyesGaze

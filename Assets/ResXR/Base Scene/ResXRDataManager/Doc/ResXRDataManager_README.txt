@@ -34,9 +34,56 @@ Recording options (inspector):
 -----------------------------------------------------
 
 - **Custom data classes (events)**
-  Implement `CustomDataClass` with a read-only `TableName` property and public fields for CSV columns
-  (see CustomCsvFromDataClass.cs). Add a constructor to set values.
-  It is recommended to use `Time.realtimeSinceStartup` for time fields so they align with ContinuousData.
+  Implement `CustomDataClass` with `onset { get; }` and `duration { get; }` properties plus public
+  fields for your CSV columns (see CustomCsvFromDataClass.cs). Add a constructor that sets all values.
+  The CSV is named after the C# class — a class called `ChoiceEvents` produces
+  `{sessionTime}_ChoiceEvents.csv`. Name your class to describe what it records; no `TableName`
+  property is needed.
+  Always use `Time.realtimeSinceStartup` for `onset` so it aligns with ContinuousData.
+
+  Annotate all public fields with [ColumnInfo] for BIDS sidecar metadata.
+  Signature: [ColumnInfo(description, levels..., Units = "...", Format = "...", Minimum = N, Maximum = N)]
+  description is the only required argument; all others are optional.
+  Missing [ColumnInfo] entirely or leaving description empty both log a hard error +
+  ResXRDebugLogs entry at session end; the field name is used as a placeholder description.
+
+      // Non-categorical (no levels):
+      [ColumnInfo("Name of the chosen image")]
+      public string Choice;
+
+      // Non-categorical, with units and format:
+      [ColumnInfo("Seconds from stimulus display to choice", Units = "s", Format = "number", Minimum = 0.0)]
+      public float ReactionTime;
+
+      // Categorical — one string per level, always "value:description":
+      [ColumnInfo("Slot chosen by the participant", "A:Left slot", "B:Right slot")]
+      public string ChosenOption;
+
+      [ColumnInfo("Hand used to make the choice", "Left:Left hand", "Right:Right hand")]
+      public string HandUsed;
+
+      // Numeric with range bounds:
+      [ColumnInfo("Confidence score from 0 to 1", Format = "number", Minimum = 0.0, Maximum = 1.0)]
+      public float Confidence;
+
+  levels are positional params (one string per level); omit entirely for non-categorical fields.
+  Each level string MUST be "value:description" — value-only entries (e.g. "Left") are not
+  allowed because BIDS requires a description for every level. Both the value and description
+  must be non-empty. See BIDS spec:
+    https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels
+  Units is an optional named property; omit for dimensionless or categorical columns.
+  Format must be one of the 18 BIDS-allowed values (an unrecognised value logs an error at session end):
+    string, number, integer, boolean, index, label, date, datetime, time, unit,
+    uri, rrid, bids_uri, dataset_relative, file_relative, participant_relative,
+    stimuli_relative, hed_version
+  Minimum and Maximum are optional double bounds; omit if not applicable.
+
+  At session end, C# reflection reads these attributes and writes them into
+  {sessionTime}_CustomTables/{sessionTime}_CustomTables.json. The Python pipeline then
+  reads that JSON to generate *_events.json BIDS sidecar files.
+  Undecorated fields appear in the CSV and in the sidecar with an auto-generated placeholder
+  description (field name prettified, e.g. "ReactionTime" → "Reaction Time"). A hard error
+  is logged at session end — add [ColumnInfo("description")] to replace the placeholder.
 
   Template-provided **Events** table (pipeline-friendly markers):
   - CSV: `<sessionTime>_Events.csv` with columns `name`, `onset`, `duration`.
@@ -45,11 +92,11 @@ Recording options (inspector):
   - Log from code:
       ResXRDataManager.Instance.ReportEvent("trial_start", Time.realtimeSinceStartup, 0f);
 
-  Example (matches the template’s ChoiceEvent shape):
-      public class ChoiceEvent : CustomDataClass
+  Example (matches the template’s ChoiceEvents shape):
+      public class ChoiceEvents : CustomDataClass
       {
-          public string TableName => "ChoiceEvents";
-          public float TimeSinceStart;
+          public float onset    { get; }   // Time.realtimeSinceStartup at choice
+          public float duration { get; }   // 0f — instantaneous event
           public string Task;
           public int Trial;
           public string OptionAName;
@@ -57,22 +104,26 @@ Recording options (inspector):
           public string Choice;
           // ... other fields ...
 
-          public ChoiceEvent(...)
+          public ChoiceEvents(...)
           {
-              TimeSinceStart = Time.realtimeSinceStartup;
+              onset = Time.realtimeSinceStartup;
+              duration = 0f;
               // ...
           }
       }
 
 - **Reporter functions**
-  Add helper functions in ResXRDataManager to log your new class (or call `LogCustom(...)` yourself).
+  Add a static Log() method directly on your data class (or call LogCustom(...) yourself).
+  The reporter lives in the same file as the class it serves — schema and writer in one place.
 
   Example:
-      public void LogChoice(string task, int trial, ...)
+      public static void Log(string task, int trial, ...)
       {
-          var choiceEvent = new ChoiceEvent(...);
-          LogCustom(choiceEvent);
+          ResXRDataManager.Instance.LogCustom(new ChoiceEvents(task, trial, ...));
       }
+
+  Call it from your flow scripts:
+      ChoiceEvents.Log(taskName, trialIndex, ...);
 
 - **Custom transforms**
   In the Unity inspector, assign transforms (objects) 
@@ -87,15 +138,41 @@ don’t need to edit them. For details of those columns,
 refer to data_sources_README.txt.
 
 
-2. METADATA
+2. OUTPUT FOLDER STRUCTURE
 -----------------------------------------------------
 
-Each session is accompanied by one JSON file:
+Each session is written into its own subfolder:
 
-- session_metadata.json  
-  Written automatically at runtime by SessionMetaWriter.cs.  
-  Designed to support later Motion-BIDS export (a Python pipeline 
-  generates the actual BIDS files; no *_scans.tsv or *_channels.json 
+  {persistentDataPath}/
+    2026.06.04_09-55/
+      2026.06.04_09-55_ContinuousData.csv
+      2026.06.04_09-55_Events.csv
+      2026.06.04_09-55_FaceExpressionData.csv
+      2026.06.04_09-55_ResXRDebugLogs.csv
+      2026.06.04_09-55_SessionMetadata.json
+      2026.06.04_09-55_CustomTables/
+        2026.06.04_09-55_ChoiceEvents.csv
+        2026.06.04_09-55_CustomTables.json
+        2026.06.04_09-55_StimulusBounds.csv
+        2026.06.04_09-55_TrialsData.csv
+
+ContinuousData, FaceExpressionData, Events, ResXRDebugLogs,
+and SessionMetadata sit at the session root.
+Experiment-specific custom tables and their sidecar JSON
+go into the {sessionTime}_CustomTables/ subfolder.
+The Python pipeline reads the structure as-is; no manual
+reorganisation is needed.
+
+
+3. METADATA
+-----------------------------------------------------
+
+Each session is accompanied by two JSON files:
+
+- {sessionTime}_SessionMetadata.json
+  Written once at session start by SessionMetaWriter.cs; never modified again.
+  Designed to support later Motion-BIDS export (a Python pipeline
+  generates the actual BIDS files; no *_scans.tsv or *_channels.json
   are written at runtime).
 
   Contains:
@@ -117,12 +194,28 @@ Each session is accompanied by one JSON file:
       is true. When false, these are left empty (no placeholders) so the pipeline
       can treat them as "not available".
 
-Together, this guarantees reproducibility: you know 
-exactly which build and session produced the data and under which 
+- {sessionTime}_CustomTables/{sessionTime}_CustomTables.json
+  Written at session end by CustomTablesSidecarWriter.cs (before CSV files are closed).
+  Located in the {sessionTime}_CustomTables/ subfolder alongside the custom CSVs.
+  Contains one entry per experiment-specific data class used during the session
+  (e.g. ChoiceEvents, TrialsData), listing the CSV filename, row count, and per-column
+  metadata sourced from [ColumnInfo] annotations (Description, Units, Levels,
+  Format, Minimum, Maximum — all PascalCase keys).
+  Built-in tables (Events, ResXRDebugLogs) are excluded from this sidecar.
+  Consumed by the ResXR Python pipeline post-experiment to auto-generate
+  *_events.json BIDS sidecar files for each custom CSV. Because all custom tables
+  share the same onset/duration clock as ContinuousData.csv, the pipeline can also
+  merge them into a single BIDS events file.
+  Any validation errors (empty descriptions, unrecognised Format values, cross-table
+  column conflicts) are written to both Debug.LogError and ResXRDebugLogs.csv
+  before this file is written.
+
+Together, this guarantees reproducibility: you know
+exactly which build and session produced the data and under which
 settings.
 
 (There is also a file called build_info.json generated at build time and embadded in the apk;
-when present and loaded, its values are written into session_metadata.
+when present and loaded, its values are written into SessionMetadata.
 When missing or not yet loaded, build_info_available is false and the
 three build fields above are left empty.)
 
@@ -151,6 +244,13 @@ work. You don’t normally edit them.
 - CsvRowWriter.cs: writes one CSV (header + rows).
 - CustomCsvFromDataClass.cs: lets you write a custom
   data class straight to CSV automatically.
+- ColumnInfoAttribute.cs: optional [ColumnInfo] attribute
+  for BIDS sidecar metadata on custom data class fields.
+- Editor/CustomDataClassValidator.cs: [InitializeOnLoad]
+  editor script; logs a hard error in the Unity console
+  after every compile for any public field missing a
+  [ColumnInfo] annotation. Editor-only — the equivalent
+  runtime check runs in ResXRDataManager at session end.
 
 C) Collectors
 -------------
@@ -169,8 +269,12 @@ D) Metadata
 - AutoBuildInfo.cs: runs in Unity Editor at build time,
   writes build_info.json, appends build id to version.
 - BuildInfoLoader.cs: loads build_info.json at runtime.
-- SessionMetaWriter.cs: writes session_metadata.json
-  when session starts.
+- SessionMetaWriter.cs: writes {sessionTime}_SessionMetadata.json
+  once at session start (never modified again).
+- CustomTablesSidecarWriter.cs: writes
+  {sessionTime}_CustomTables/{sessionTime}_CustomTables.json
+  at session end with per-table and per-column metadata for the pipeline.
+  Built-in tables (Events, ResXRDebugLogs) are excluded.
 
 -----------------------------------------------------
 
@@ -195,11 +299,11 @@ Q: Where do I find which columns are in the CSV?
 A: See data_sources_README.txt for ContinuousData and 
    FaceExpressions. Custom tables use your class fields.
 
-Q: How do I add a new event table?  
-A: Create a new data class that implements CustomDataClass
-   with a TableName property and public fields,
-   then add a reporter function that instantiates it
-   and calls LogCustom(...) (or CustomCsvFromDataClass.Write(...)).
+Q: How do I add a new event table?
+A: Create a new class that implements CustomDataClass with onset and duration
+   properties plus your public fields. The CSV file is named after the class
+   automatically. Add a reporter function that instantiates it and calls
+   LogCustom(...) (or CustomCsvFromDataClass.Write(...)).
 
 Q: Will missing values appear as zeros?  
 A: No. Empty cells are left blank in CSV (meaning:
@@ -209,7 +313,7 @@ Q: How often is data logged?
 A: ContinuousData.csv and FaceExpressions.csv are logged 
    once per physics tick (Unity’s FixedUpdate). The tick
    rate is set in Project Settings → Time → Fixed Timestep 
-   (default is 0.02 seconds = 50 Hz).  
+   (default is 0.01 seconds = 100 Hz).
    You can change this setting if you want a different
    logging frequency for continuous data.
 
@@ -218,9 +322,17 @@ A: ContinuousData.csv and FaceExpressions.csv are logged
    you can log events at arbitrary times, regardless of the
    physics tick.
 
-Q: What if Unity crashes—will I lose data?  
+Q: What if Unity crashes—will I lose data?
 A: No, CsvRowWriter flushes each line to disk so files
    stay consistent.
+
+Q: Why must I call Application.Quit() at the end of the session?
+A: All cleanup — flushing CSV rows and writing the session sidecar JSON —
+   runs in ResXRDataManager.OnDestroy(). This only triggers reliably when
+   the app exits cleanly via Application.Quit(). If the OS kills the
+   process instead (e.g. the user removes their headset), the sidecar
+   JSON may be missing and the last CSV rows may not have been written.
+   Always make Application.Quit() the last line of EndSession().
 
 Note: Enum/flag fields are written as strings (e.g., "High", "Calibrating", "Tracked|OrientationValid") for readability.
 

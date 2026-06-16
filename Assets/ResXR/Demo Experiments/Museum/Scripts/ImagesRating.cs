@@ -23,12 +23,12 @@ public class ImagesRating : MonoBehaviour
     /// </summary>
     public void LogSliderConfig()
     {
-        ResXRDataManager.Instance.LogCustom(new SliderConfigRow(
+        SliderConfig.Log(
             ratingSlider.MinValue,
             ratingSlider.MaxValue,
             ratingSlider.NumOfIntervals,
             ratingSlider.AllowContinuousValues
-        ));
+        );
     }
 
     /// <summary>
@@ -62,14 +62,8 @@ public class ImagesRating : MonoBehaviour
         ratingPanel.Hide().Forget();
         ratingSlider.gameObject.SetActive(false);
 
-        // image_displayed: single event with duration = deliberation time
-        ResXRDataManager.Instance.ReportEvent(
-            $"image_displayed:{imageName}",
-            presentationStart,
-            confirmTime - presentationStart);
-
         // Per-image rating row
-        ResXRDataManager.Instance.LogCustom(new ImageRatingRow(
+        ImageRatings.Log(
             taskName,
             trialIndex,
             imageName,
@@ -78,7 +72,7 @@ public class ImagesRating : MonoBehaviour
             ratingSlider.MaxValue,
             presentationStart,
             confirmTime
-        ));
+        );
 
         currentImageIndex++;
         return (imageName, rating);

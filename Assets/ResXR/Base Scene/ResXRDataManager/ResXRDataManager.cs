@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using UnityEngine;
 using static OVRPlugin;
 using static ResXRData.BuildInfoLoader;
@@ -19,50 +21,61 @@ namespace ResXRData
     // HOW DATA CLASSES WORK IN RESXR  (read this once — it applies everywhere)
     // ─────────────────────────────────────────────────────────────────────────
     //
-    // A "data class" is a plain C# class with public fields. Each field becomes
-    // one column in a CSV file. The only requirements are:
+    // A "data class" is a plain C# class with public fields. The only requirements are:
     //   1. Implement the CustomDataClass interface:
-    //          public string TableName => "YourTableName";
+    //          public float onset    { get; }   // set in constructor
+    //          public float duration { get; }   // set in constructor
     //   2. Store data in PUBLIC FIELDS (not properties).
-    //      Field declaration order = column order in the CSV.
+    //      Field declaration order = column order in the CSV (after onset/duration).
     //
     // ResXR automatically:
-    //   • Creates {sessionTime}_{TableName}.csv on the first write
-    //   • Writes the header row from your field names
+    //   • Creates {sessionTime}_{ClassName}.csv on the first write — the CSV is named
+    //     after the C# class, e.g. ChoiceEvents produces {sessionTime}_ChoiceEvents.csv.
+    //     Name your class to describe what it records; no TableName property is needed.
+    //   • Writes the header row: onset, duration, then your field names
     //   • Writes one data row per call
     //   • Flushes to disk immediately — crash-safe
     //
-    // The recommended pattern is to wrap LogCustom in a named reporter method,
-    // the same way LogLineToFile() wraps ResXRLogs here in this file, or the way
-    // LogChoice() wraps ChoiceEvent for the Binary Choice demo.
-    // That keeps your flow scripts clean — one readable call instead of
-    // "new MyClass(...)" scattered everywhere.
+    // The recommended pattern is to add a static Log() method directly on the data
+    // class itself. Every demo data class file follows this pattern — for example,
+    // ChoiceEvents.Log(...) in BinaryChoiceDataClasses.cs, or TrialsData.Log(...)
+    // defined right here. The reporter takes plain values, constructs the data object,
+    // and calls LogCustom(). That keeps flow scripts clean — one readable line instead
+    // of "new MyClass(...)" scattered everywhere.
+    // LogCustom() is still public for quick prototyping, but prefer ClassName.Log(...).
     //
-    // WHERE SHOULD YOUR DATA CLASS LIVE?
-    //   • Here in this region — the simplest choice, everything in one place.
-    //   • A dedicated file next to your experiment scripts — keeps things tidy
-    //     when your experiment has many tables (see BinaryChoiceDataClasses.cs).
+    // WHERE SHOULD YOUR DATA CLASS LIVE? — BEST PRACTICE
+    //   • Here in this region — good for tables shared across all experiments
+    //     (like TrialsData and events, which are already here).
+    //   • A dedicated file next to your experiment scripts — best for experiment-specific
+    //     tables; keeps definitions, annotations, and the Log() reporter all in one place
+    //     (see BinaryChoiceDataClasses.cs, MazeDataClasses.cs, MuseumDataClasses.cs).
     //
     // Demo-specific tables already defined:
-    //   BinaryChoiceDataClasses.cs  →  ChoiceEvent, StimulusBounds
+    //   BinaryChoiceDataClasses.cs  →  ChoiceEvents, StimulusBounds
     //   MazeDataClasses.cs          →  MazeTrialData
-    //   MuseumDataClasses.cs        →  ImageRatingRow, SliderConfigRow, ArtworkBoundsRow
+    //   MuseumDataClasses.cs        →  ImageRatings, SliderConfig, ArtworkBounds
     // ─────────────────────────────────────────────────────────────────────────
     #region custom data classes definitions
 
     /// <summary>
-    /// Internal framework log. Written by LogLineToFile(string) — a quick way
-    /// to append a human-readable note to ResXRLogs.csv from anywhere in your code.
+    /// Append a timestamped text note to ResXRDebugLogs.csv from anywhere in your code.
+    /// Handy for quick debugging during device builds when you can't use the Unity console —
+    /// drop a LogLineToFile call anywhere and inspect the CSV after the run.
     /// </summary>
-    public class ResXRLogs : CustomDataClass
+    [BuiltInTable]
+    public class ResXRDebugLogs : CustomDataClass
     {
-        public string TableName => "ResXRLogs";
+        public float onset { get; }   // Time.realtimeSinceStartup when the note was written
+        public float duration { get; }   // 0f — instantaneous log entry
 
-        public float timeSinceStartup;
+        [ColumnInfo("Timestamped debug note written to file during the session", Format = "string")]
         public string message;
-        public ResXRLogs(float t, string msg)
+
+        public ResXRDebugLogs(float t, string msg)
         {
-            timeSinceStartup = t;
+            onset = t;
+            duration = 0f;
             message = msg;
         }
     }
@@ -71,50 +84,61 @@ namespace ResXRData
     /// Universal trial summary row, written by every demo's TrialManager.EndTrial().
     /// Gives you one row per trial across all experiments with a consistent schema,
     /// making it easy to merge data from multiple sessions or paradigms.
-    /// Extend this with a demo-specific table (e.g. MazeTrials) when you need
+    /// Extend this with a demo-specific table (e.g. MazeTrialData) when you need
     /// extra columns — don't modify this class directly.
+    /// Call <c>TrialsData.Log(...)</c> from your flow scripts to write a row.
     /// </summary>
     public class TrialsData : CustomDataClass
     {
-        public string TableName => "TrialsData";
-        public string Session;    // SessionTime string (yyyy.MM.dd_HH-mm) — links to session_metadata.json
-        public string Task;       // Task name or index
-        public string Trial;      // Trial index within the task (can be changed to int if needed)
-        public string TrialName;  // Human-readable unique name, e.g. "maze_t0_t3"
-        public float StartTime;   // Time.realtimeSinceStartup at trial start
-        public float EndTime;     // Time.realtimeSinceStartup at trial end
+        public float onset { get; }   // Time.realtimeSinceStartup at trial start
+        public float duration { get; }   // Trial duration in seconds
 
-        public TrialsData(string session, string task, string trial, string trialName, float startTime, float endTime)
+        [ColumnInfo("Task name or index within the session", Format = "string")]
+        public string Task;
+        [ColumnInfo("Trial index within the task", Format = "integer", Minimum = 0)]
+        public int Trial;
+        [ColumnInfo("Human-readable unique trial identifier", Format = "string")]
+        public string TrialName;
+
+        public TrialsData(string task, int trial, string trialName, float startTime, float endTime)
         {
-            Session = session;
+            onset = startTime;
+            duration = endTime - startTime;
             Task = task;
             Trial = trial;
             TrialName = trialName;
-            StartTime = startTime;
-            EndTime = endTime;
+        }
+
+        /// <summary>
+        /// Writes one TrialsData row. Call at trial end once the end time is known.
+        /// </summary>
+        public static void Log(string task, int trial, string trialName, float startTime, float endTime)
+        {
+            ResXRDataManager.Instance.LogCustom(new TrialsData(task, trial, trialName, startTime, endTime));
         }
     }
 
     /// <summary>
-    /// One row in events.csv — a timeline of named markers with onset and duration.
+    /// One row in Events.csv — a timeline of named markers with onset and duration.
     /// Use Time.realtimeSinceStartup for onset so it aligns with the continuous CSV clock.
     /// Use duration = 0 for point events (things that happen in an instant).
     /// Use a real duration for stimulus/window events (emit the row at the END with duration = end - start).
     /// Written by ResXRDataManager_V2.Instance.ReportEvent(...) — see that method below.
     /// </summary>
-    public class ReportEvent : CustomDataClass
+    [BuiltInTable]
+    public class Events : CustomDataClass
     {
-        public string TableName => "events";
+        public float onset { get; }   // Time.realtimeSinceStartup when the event started
+        public float duration { get; }   // Duration in seconds; 0 for point events
 
+        [ColumnInfo("Event label identifying this marker, e.g. trial_start or stimulus_on", Format = "string")]
         public string name;    // Event label, e.g. "trial_start:task1_t0" or "stimulus:task1_t3"
-        public float onset;    // Time.realtimeSinceStartup when the event started
-        public float duration; // Duration in seconds; 0 for point events
 
-        public ReportEvent(string name, float onset, float duration)
+        public Events(string name, float onset, float duration)
         {
-            this.name = name;
             this.onset = onset;
             this.duration = duration;
+            this.name = name;
         }
     }
 
@@ -145,10 +169,16 @@ namespace ResXRData
 
         // paths
         private string _rootDir;
+        private string _sessionDir; // {_rootDir}/{sessionTime}/ — all session files go here
 
         // schemas
         private ColumnIndex _continuousSchema;
         private ColumnIndex _faceSchema;
+
+        // schema allocation counts (set once in DoInAwake; read by WriteMetadata and ValidateSchemaVsDevice)
+        private int _schemaHandBonesCount;
+        private int _schemaBodyJointsCount;
+        private int _schemaFaceExpressionsCount;
 
         // row buffers
         private RowBuffer _continuousRow;
@@ -168,7 +198,7 @@ namespace ResXRData
         public event Action<FaceExpressionSample> OnFaceExpressionSample; // Fired once per physics tick, right before writing FaceExpressions csv
 
         // declare pointers for all experience-specific analytics classes
-        private ResXRLogs logLine;
+        private ResXRDebugLogs logLine;
 
         #endregion
 
@@ -177,13 +207,14 @@ namespace ResXRData
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Quick text log. Appends one row to ResXRLogs.csv with a timestamp and your message.
-        /// Useful for ad-hoc notes during development ("participant pressed wrong button", etc.).
+        /// Appends a timestamped text note to ResXRDebugLogs.csv.
+        /// Particularly useful for debugging during device builds where the Unity console is
+        /// unavailable — drop a LogLineToFile call anywhere and inspect the CSV after the run.
         /// For structured event data, prefer ReportEvent or LogCustom instead.
         /// </summary>
         public void LogLineToFile(string line)
         {
-            logLine = new ResXRLogs(Time.realtimeSinceStartup, line);
+            logLine = new ResXRDebugLogs(Time.realtimeSinceStartup, line);
             this.LogCustom(logLine);
         }
 
@@ -210,18 +241,7 @@ namespace ResXRData
         /// </summary>
         public void ReportEvent(string name, float onset, float duration)
         {
-            LogCustom(new ReportEvent(name, onset, duration));
-        }
-
-        // ── LogChoice ──────────────────────────────────────────────────────────
-        // Binary Choice demo convenience wrapper. Writes one row to ChoiceEvents.csv.
-        // If you are not using the Binary Choice demo, you can ignore this method
-        // (or delete it — it only exists because BinaryChoice_TrialManager calls it).
-        public void LogChoice(string task, int trial, string optionAName, string optionBName, string choice,
-            string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
-        {
-            var choiceEvent = new ChoiceEvent(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
-            LogCustom(choiceEvent);
+            LogCustom(new Events(name, onset, duration));
         }
 
         #endregion
@@ -253,13 +273,29 @@ namespace ResXRData
                 _rootDir = Application.persistentDataPath;
             }
 
-            // 2) Build schemas (face first so we have faceExprCount for metadata)
+            // 2) Create per-session subfolder: {rootDir}/{sessionTime}/
+            _sessionDir = Path.Combine(_rootDir, sessionTime);
+            try
+            {
+                Directory.CreateDirectory(_sessionDir);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ResXRDataManager] Failed to create session directory '{_sessionDir}': {ex.Message}. " +
+                               $"Falling back to root directory — all session files will be written there instead.");
+                _sessionDir = _rootDir;
+            }
+
+            // 3) Build schemas (face first so we have faceExprCount for metadata)
             var face = SchemaFactories.BuildFaceExpressionsV2();                 // (schema, faceExprCount, ...)
             var cont = SchemaFactories.BuildContinuousDataV2(recordingOptions);   // (schema, counts, flags)
             _continuousSchema = cont.schema;
             _faceSchema = face.schema;
+            _schemaHandBonesCount       = recordingOptions.includeHands   ? cont.handBones    : 0;
+            _schemaBodyJointsCount      = recordingOptions.includeBody    ? cont.bodyJoints   : 0;
+            _schemaFaceExpressionsCount = recordFaceExpressions           ? face.faceExprCount : 0;
 
-            // 4.5) Initialize tracking space converter for world space conversion
+            // 4) Initialize tracking space converter for world space conversion
             OVRCameraRig cameraRig = FindFirstObjectByType<OVRCameraRig>();
             if (cameraRig != null && cameraRig.trackingSpace != null)
             {
@@ -272,12 +308,12 @@ namespace ResXRData
             }
 
             // 5) Writers
-            string contPath = Path.Combine(_rootDir, $"{sessionTime}_ContinuousData.csv");
+            string contPath = Path.Combine(_sessionDir, $"{sessionTime}_ContinuousData.csv");
             _continuousWriter = new CsvRowWriter(contPath, csvDelimiter, null, appendIfFilesExist);
 
             if (recordFaceExpressions)
             {
-                string facePath = Path.Combine(_rootDir, $"{sessionTime}_FaceExpressionData.csv");
+                string facePath = Path.Combine(_sessionDir, $"{sessionTime}_FaceExpressionData.csv");
                 _faceWriter = new CsvRowWriter(facePath, csvDelimiter, null, appendIfFilesExist);
             }
 
@@ -307,10 +343,10 @@ namespace ResXRData
             }
 
             // 8) Custom data tables: set base directory + delimiter once
-            CustomCsvFromDataClass.Initialize(_rootDir, csvDelimiter, sessionTime);
+            CustomCsvFromDataClass.Initialize(_sessionDir, csvDelimiter, sessionTime);
 
             // 9) Metadata (async so build info can load first; recording already set up)
-            WriteMetadataAsync(face.faceExprCount).Forget();
+            WriteMetadataAsync().Forget();
         }
 
         private async void Start()
@@ -322,6 +358,8 @@ namespace ResXRData
             {
                 await StartBodyTrackingAsync(BodyJointSet.FullBody, BodyTrackingFidelity2.High);
             }
+
+            ValidateSchemaVsDevice();
         }
 
         private void FixedUpdate()
@@ -396,6 +434,11 @@ namespace ResXRData
             }
             _continuousCollectors.Clear();
 
+            // Write custom_tables metadata BEFORE closing any writers:
+            // - RowCount values are still accurate
+            // - LogLineToFile can still reach ResXRDebugLogs.csv if an error occurs
+            WriteCustomTablesMetadata();
+
             // writers
             try { _continuousWriter?.Dispose(); } catch { }
             try { _faceWriter?.Dispose(); } catch { }
@@ -440,25 +483,26 @@ namespace ResXRData
 
         // ── LogCustom ──────────────────────────────────────────────────────────
         // The low-level write method. You generally won't call this directly —
-        // instead, add a named reporter method to this class (like LogLineToFile
-        // and LogChoice below) that creates the data object and calls LogCustom.
-        // That keeps your experiment scripts clean and readable.
+        // instead, add a static Log() method on the data class itself (see
+        // TrialsData.Log() in this file, or ChoiceEvents.Log() in
+        // BinaryChoiceDataClasses.cs for examples). The reporter takes plain
+        // values, constructs the data object, and calls LogCustom().
         //
-        // Example: if you have a "MyTrialEvent" data class, add a method here:
+        // Example: if you have a "MyTrialEvent" data class, add a method to it:
         //
-        //   public void LogMyTrialEvent(string label, float rt) {
-        //       LogCustom(new MyTrialEvent(label, rt));
+        //   public static void Log(string label, float rt) {
+        //       ResXRDataManager.Instance.LogCustom(new MyTrialEvent(label, rt));
         //   }
         //
         // Then from your TrialManager you just write:
-        //   ResXRDataManager_V2.Instance.LogMyTrialEvent("stimulus_on", reactionTime);
+        //   MyTrialEvent.Log("stimulus_on", reactionTime);
         //
         // ──────────────────────────────────────────────────────────────────────
 
         /// <summary>
         /// Writes one row to the CSV table for this data class.
         /// The CSV file is created automatically on the first call.
-        /// Prefer creating a named reporter method over calling this directly.
+        /// Prefer using the static <c>Log()</c> method on your data class over calling this directly.
         /// </summary>
         public void LogCustom(CustomDataClass data)
         {
@@ -481,7 +525,7 @@ namespace ResXRData
 
         #endregion
 
-        public string GetOutputDirectory() => _rootDir;
+        public string GetOutputDirectory() => _sessionDir;
 
         #region default data class logging
 
@@ -491,20 +535,15 @@ namespace ResXRData
 
         #region METADATA
 
-        private async UniTaskVoid WriteMetadataAsync(int faceExprCount)
+        private async UniTaskVoid WriteMetadataAsync()
         {
             if (BuildInfoLoader.Instance != null)
                 await BuildInfoLoader.Instance.LoadAsync();
-            WriteMetadata(faceExprCount);
+            WriteMetadata();
         }
 
-        private void WriteMetadata(int? faceExprCount = null)
+        private void WriteMetadata()
         {
-            // 0) Capture skeletons once (if hands are enabled)
-            OVRPlugin.Skeleton2 leftSkel = default, rightSkel = default;
-            bool haveLeft = recordingOptions.includeHands && OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandLeft, ref leftSkel);
-            bool haveRight = recordingOptions.includeHands && OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandRight, ref rightSkel);
-
             // 1) Build the object
             var meta = new SessionMetaData
             {
@@ -551,6 +590,7 @@ namespace ResXRData
                 // Motion-BIDS provenance (for pipeline)
                 manufacturers_model_name_raw = SystemInfo.deviceModel ?? "",
                 software_versions_raw = SystemInfo.operatingSystem ?? "",
+                horizon_os_version = GetHorizonOSVersion(),
                 device_serial_number = "",
                 device_serial_number_note = "It is no longer possible to reliably get the unique hardware serial number of a Meta Quest device from within a Unity application due to privacy restrictions imposed by Android 10 and later",
 
@@ -573,13 +613,10 @@ namespace ResXRData
             };
 
 
-            // fill detected_hand_bones if we have a skeleton
-            if (haveLeft) meta.detected_hand_bones = Math.Max(meta.detected_hand_bones, (int)leftSkel.NumBones);
-            if (haveRight) meta.detected_hand_bones = Math.Max(meta.detected_hand_bones, (int)rightSkel.NumBones);
-
-            // detected_face_expr_count (from schema when face recording enabled)
-            if (recordFaceExpressions && faceExprCount.HasValue)
-                meta.detected_face_expr_count = faceExprCount.Value;
+            // schema allocation sizes (match exactly what was used to build the CSV columns)
+            meta.schema_hand_bones       = _schemaHandBonesCount;
+            meta.schema_body_joints      = _schemaBodyJointsCount;
+            meta.schema_face_expressions = _schemaFaceExpressionsCount;
 
             // Build info: only set build_id, git_commit, utc_build_iso8601 when available (no placeholders)
             BuildInfo bi = BuildInfoLoader.Instance?.Current;
@@ -606,6 +643,400 @@ namespace ResXRData
             // 4) Finally write
             SessionMetaWriter.WriteInitial(GetOutputDirectory(), SessionTime, meta);
         }
+
+        // Called from Start() after body tracking is initialised (so GetSkeleton2(Body) returns live data).
+        // Compares the live device bone/joint counts against the schema allocation used to build the CSV.
+        // A mismatch means the CSV has padding or truncated columns — log loudly so it can't be missed.
+        private void ValidateSchemaVsDevice()
+        {
+            if (recordingOptions.includeHands)
+            {
+                OVRPlugin.Skeleton2 leftSkel = default, rightSkel = default;
+                bool haveLeft  = OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandLeft,  ref leftSkel);
+                bool haveRight = OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandRight, ref rightSkel);
+                if (haveLeft || haveRight)
+                {
+                    int liveCount = 0;
+                    if (haveLeft)  liveCount = Math.Max(liveCount, (int)leftSkel.NumBones);
+                    if (haveRight) liveCount = Math.Max(liveCount, (int)rightSkel.NumBones);
+                    if (liveCount != _schemaHandBonesCount)
+                    {
+                        string msg = $"[ResXR] Hand bone count mismatch: schema allocated {_schemaHandBonesCount} columns but device reported {liveCount}. Hand bone columns in ContinuousData.csv may be padded or truncated.";
+                        Debug.LogError(msg);
+                        LogLineToFile(msg);
+                    }
+                }
+            }
+
+            if (recordingOptions.includeBody)
+            {
+                OVRPlugin.Skeleton2 bodySkel = default;
+                if (OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.Body, ref bodySkel) && bodySkel.NumBones > 0)
+                {
+                    int liveCount = (int)bodySkel.NumBones;
+                    if (liveCount != _schemaBodyJointsCount)
+                    {
+                        string msg = $"[ResXR] Body joint count mismatch: schema allocated {_schemaBodyJointsCount} columns but device reported {liveCount}. Body joint columns in ContinuousData.csv may be padded or truncated.";
+                        Debug.LogError(msg);
+                        LogLineToFile(msg);
+                    }
+                }
+            }
+        }
+
+        private static string GetHorizonOSVersion()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                using var systemProps = new AndroidJavaClass("android.os.SystemProperties");
+                return systemProps.CallStatic<string>("get", "ro.hzos.build.display_name", "unknown");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ResXR] Failed to read Horizon OS version: {e.Message}");
+                return "unknown";
+            }
+#elif UNITY_EDITOR
+            return "editor";
+#else
+            return "n/a"; // PCVR / Windows standalone
+#endif
+        }
+
+        /// <summary>
+        /// Validates all [ColumnInfo] annotations and writes
+        /// <c>{sessionTime}_CustomTables/{sessionTime}_CustomTables.json</c>.
+        /// Must be called before <see cref="CustomCsvFromDataClass.CloseAll"/> so that
+        /// <see cref="CsvRowWriter.RowCount"/> values are still current and
+        /// <see cref="LogLineToFile"/> can write to ResXRDebugLogs.csv if an error occurs.
+        /// The sidecar is consumed by the ResXR Python pipeline post-experiment to
+        /// auto-generate *_events.json BIDS sidecar files and merge all custom tables
+        /// into the single BIDS events file.
+        /// </summary>
+        private void WriteCustomTablesMetadata()
+        {
+            try
+            {
+                CustomTableSummary[] summaries = CustomCsvFromDataClass.GetTableSummaries();
+                if (summaries.Length == 0) return;
+
+                // Validate [ColumnInfo] annotations and log any problems before writing.
+                ValidateColumnAnnotations(summaries);
+
+                string json = BuildCustomTablesJson(summaries);
+                CustomTablesSidecarWriter.Write(GetOutputDirectory(), sessionTime, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ResXRDataManager] WriteCustomTablesMetadata failed: {ex.Message}");
+                // Also log to ResXRDebugLogs.csv while it is still open (CloseAll has not yet run).
+                try { LogLineToFile($"[WriteCustomTablesMetadata] ERROR: {ex.Message}"); } catch { }
+            }
+        }
+
+        // Validates every payload column's [ColumnInfo] annotation:
+        //   (a) No annotation at all      → error: field name will be used as placeholder description.
+        //   (b) Annotation with empty description → error: same placeholder fallback applies.
+        //   (c) Invalid Format value      → error: unrecognised value will be written as-is.
+        // onset and duration are skipped — they are interface columns, not annotatable by the user.
+        // Logs to Debug.LogError + ResXRDebugLogs.csv for easy debugging on device.
+        // Called before BuildCustomTablesJson so issues surface even if the JSON build fails.
+        private void ValidateColumnAnnotations(CustomTableSummary[] summaries)
+        {
+            // ── Pass 1: per-table, per-column annotation checks ─────────────────────────
+            foreach (CustomTableSummary s in summaries)
+            {
+                // Skip built-in tables — they are not merged into the pipeline events table.
+                Type tableType = CustomCsvFromDataClass.GetDefiningType(s.tableName);
+                if (tableType != null && tableType.GetCustomAttribute<BuiltInTableAttribute>() != null)
+                    continue;
+
+                foreach (CustomColumnMeta col in s.columns)
+                {
+                    // Skip interface columns — onset and duration are hardcoded, not user-annotatable.
+                    if (col.name == "onset" || col.name == "duration") continue;
+
+                    // No [ColumnInfo] at all.
+                    if (!col.hasAnnotation)
+                    {
+                        string placeholder = PrettifyFieldName(col.name);
+                        string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in custom table '{s.tableName}' has no [ColumnInfo] annotation. " +
+                                     $"The field name (\"{placeholder}\") will be used as a placeholder description in the CustomTables sidecar JSON — " +
+                                     $"the Python pipeline will have no verified metadata for this field. " +
+                                     $"Add [ColumnInfo(\"description\")] to provide accurate BIDS metadata.";
+                        Debug.LogError(msg);
+                        try { LogLineToFile(msg); } catch { }
+                        continue; // no further checks needed for this column
+                    }
+
+                    // [ColumnInfo] present but description is empty.
+                    if (string.IsNullOrWhiteSpace(col.description))
+                    {
+                        string placeholder = PrettifyFieldName(col.name);
+                        string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}' has an empty [ColumnInfo] description. " +
+                                     $"The field name (\"{placeholder}\") will be used as a placeholder — " +
+                                     $"add a proper description to [ColumnInfo(\"...\")] for accurate BIDS metadata.";
+                        Debug.LogError(msg);
+                        try { LogLineToFile(msg); } catch { }
+                    }
+
+                    // Invalid Format value.
+                    if (!string.IsNullOrEmpty(col.format) && !IsValidBidsFormat(col.format))
+                    {
+                        string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}' has unrecognised Format \"{col.format}\". " +
+                                     $"Allowed values: {string.Join(", ", ColumnInfoAttribute.AllowedFormats)}.";
+                        Debug.LogError(msg);
+                        try { LogLineToFile(msg); } catch { }
+                    }
+
+                    // Validate levels format: each entry must be "value:description".
+                    // Value-only entries are not allowed — BIDS requires a description for every level.
+                    // See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels
+                    if (col.levels != null)
+                    {
+                        foreach (string level in col.levels)
+                        {
+                            string entry = level?.Trim() ?? "";
+
+                            if (string.IsNullOrWhiteSpace(entry))
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"a level entry is empty or whitespace. All levels must use \"value:description\" format. " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                                continue;
+                            }
+
+                            int colon = entry.IndexOf(':');
+
+                            if (colon < 0)
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"level \"{entry}\" has no description. Value-only levels are not allowed — " +
+                                             $"use \"value:description\" format (e.g. \"{entry}:{entry} description here\"). " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                                continue;
+                            }
+
+                            string key = entry.Substring(0, colon).Trim();
+                            string desc = entry.Substring(colon + 1).Trim();
+
+                            if (string.IsNullOrEmpty(key))
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"level \"{entry}\" has an empty value (nothing before the colon). " +
+                                             $"Use \"value:description\" format. " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                            }
+
+                            if (string.IsNullOrEmpty(desc))
+                            {
+                                string msg = $"[ResXR: ResXRDataManager] Field '{col.name}' in table '{s.tableName}': " +
+                                             $"level \"{entry}\" has an empty description (nothing after the colon). " +
+                                             $"Use \"value:description\" format. " +
+                                             $"See https://bids-specification.readthedocs.io/en/stable/common-principles.html#levels";
+                                Debug.LogError(msg);
+                                try { LogLineToFile(msg); } catch { }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Pass 2: cross-table column conflict check ────────────────────────────────
+            // All non-[BuiltInTable] custom tables are merged by the Python pipeline into one
+            // big events table. Any column name shared across tables MUST have identical metadata
+            // (description, units, format, levels, min, max) — otherwise the merged column will
+            // have conflicting documentation, which corrupts the BIDS sidecar.
+            var firstSeen = new Dictionary<string, (string tableName, CustomColumnMeta col)>(StringComparer.Ordinal);
+            foreach (CustomTableSummary s in summaries)
+            {
+                Type tableType = CustomCsvFromDataClass.GetDefiningType(s.tableName);
+                if (tableType != null && tableType.GetCustomAttribute<BuiltInTableAttribute>() != null)
+                    continue;
+
+                foreach (CustomColumnMeta col in s.columns)
+                {
+                    if (col.name == "onset" || col.name == "duration") continue;
+
+                    if (!firstSeen.TryGetValue(col.name, out var prior))
+                    {
+                        firstSeen[col.name] = (s.tableName, col);
+                        continue;
+                    }
+
+                    // Column name seen in a second table — check all metadata fields.
+                    var conflicts = new System.Text.StringBuilder();
+                    if (!string.Equals(prior.col.description, col.description, StringComparison.Ordinal))
+                        conflicts.Append($"\n  Description: \"{prior.col.description}\" vs \"{col.description}\"");
+                    if (!string.Equals(prior.col.units, col.units, StringComparison.Ordinal))
+                        conflicts.Append($"\n  Units: \"{prior.col.units}\" vs \"{col.units}\"");
+                    if (!string.Equals(prior.col.format, col.format, StringComparison.Ordinal))
+                        conflicts.Append($"\n  Format: \"{prior.col.format}\" vs \"{col.format}\"");
+                    if (!LevelsEqual(prior.col.levels, col.levels))
+                        conflicts.Append($"\n  Levels differ");
+                    if (!DoubleMetaEqual(prior.col.minimum, col.minimum))
+                        conflicts.Append($"\n  Minimum: {prior.col.minimum} vs {col.minimum}");
+                    if (!DoubleMetaEqual(prior.col.maximum, col.maximum))
+                        conflicts.Append($"\n  Maximum: {prior.col.maximum} vs {col.maximum}");
+
+                    if (conflicts.Length > 0)
+                    {
+                        string msg = $"[ResXR: ResXRDataManager] Cross-table column conflict: column '{col.name}' appears in " +
+                                     $"both '{prior.tableName}' and '{s.tableName}' with different metadata. " +
+                                     $"The Python pipeline merges all custom tables into one BIDS events table — " +
+                                     $"every shared column name must have identical [ColumnInfo] annotations across all tables. " +
+                                     $"Conflicting fields:{conflicts}";
+                        Debug.LogError(msg);
+                        try { LogLineToFile(msg); } catch { }
+                    }
+                }
+            }
+        }
+
+        private static bool LevelsEqual(string[] a, string[] b)
+        {
+            if (a == null && b == null) return true;
+            if (a == null || b == null) return false;
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (!string.Equals(a[i], b[i], StringComparison.Ordinal)) return false;
+            return true;
+        }
+
+        // NaN == NaN for metadata comparison purposes (both "not set" = same).
+        private static bool DoubleMetaEqual(double a, double b)
+        {
+            if (double.IsNaN(a) && double.IsNaN(b)) return true;
+            return a == b;
+        }
+
+        private static bool IsValidBidsFormat(string format)
+        {
+            foreach (string allowed in ColumnInfoAttribute.AllowedFormats)
+                if (string.Equals(format, allowed, StringComparison.Ordinal))
+                    return true;
+            return false;
+        }
+
+        // Builds the JSON value string for the "CustomTables" key in {prefix}_CustomTables.json.
+        // { "TableName": { "File": "...", "RowCount": N, "Columns": { "col": { ... } } }, ... }
+        // [BuiltInTable] tables (Events, ResXRDebugLogs) are excluded — they are not part of
+        // the per-experiment data merged by the Python pipeline.
+        // All columns are included. When description is null or empty (unannotated field or
+        // [ColumnInfo("")]), PrettifyFieldName(col.name) is used as a placeholder.
+        private static string BuildCustomTablesJson(CustomTableSummary[] summaries)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{");
+            bool firstTable = true;
+            for (int t = 0; t < summaries.Length; t++)
+            {
+                CustomTableSummary s = summaries[t];
+
+                // Skip built-in tables — they are not part of the merged events table in the pipeline.
+                Type tableType = CustomCsvFromDataClass.GetDefiningType(s.tableName);
+                if (tableType != null && tableType.GetCustomAttribute<BuiltInTableAttribute>() != null)
+                    continue;
+
+                if (!firstTable) sb.Append(",");
+                firstTable = false;
+
+                sb.Append($"\n    \"{EscapeJsonString(s.tableName)}\": {{");
+                sb.Append($"\n      \"File\": \"{EscapeJsonString(s.fileName)}\",");
+                sb.Append($"\n      \"RowCount\": {s.rowCount},");
+                sb.Append("\n      \"Columns\": {");
+                for (int c = 0; c < s.columns.Length; c++)
+                {
+                    if (c > 0) sb.Append(",");
+                    CustomColumnMeta col = s.columns[c];
+                    string desc = string.IsNullOrEmpty(col.description)
+                                                ? EscapeJsonString(PrettifyFieldName(col.name))
+                                                : EscapeJsonString(col.description);
+                    string units = string.IsNullOrEmpty(col.units) ? "n/a" : EscapeJsonString(col.units);
+                    sb.Append($"\n        \"{EscapeJsonString(col.name)}\": {{");
+                    sb.Append($"\n          \"Description\": \"{desc}\",");
+                    sb.Append($"\n          \"Units\": \"{units}\"");
+                    if (!string.IsNullOrEmpty(col.format))
+                        sb.Append($",\n          \"Format\": \"{EscapeJsonString(col.format)}\"");
+                    if (!double.IsNaN(col.minimum))
+                        sb.Append($",\n          \"Minimum\": {col.minimum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    if (!double.IsNaN(col.maximum))
+                        sb.Append($",\n          \"Maximum\": {col.maximum.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    if (col.levels != null && col.levels.Length > 0)
+                        sb.Append($",\n          \"Levels\": {BuildLevelsJson(col.levels)}");
+                    sb.Append("\n        }");
+                }
+                sb.Append("\n      }");
+                sb.Append("\n    }");
+            }
+            sb.Append("\n  }");
+            return sb.ToString();
+        }
+
+        // Converts a camelCase or PascalCase field name to a human-readable string.
+        // Inserts a space before a capital letter that follows a lowercase letter,
+        // or before a capital that starts a new word after a run of capitals.
+        // Underscores become spaces. First character is always capitalised.
+        // Examples: "ReactionTime" → "Reaction Time", "optionAName" → "Option A Name",
+        //           "URLParser" → "URL Parser", "message" → "Message"
+        private static string PrettifyFieldName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return name;
+            var sb = new StringBuilder();
+            for (int i = 0; i < name.Length; i++)
+            {
+                char c = name[i];
+                if (c == '_') { sb.Append(' '); continue; }
+                if (i > 0 && char.IsUpper(c))
+                {
+                    bool prevLower = char.IsLower(name[i - 1]);
+                    bool nextLower = i + 1 < name.Length && char.IsLower(name[i + 1]);
+                    if (prevLower || (char.IsUpper(name[i - 1]) && nextLower))
+                        sb.Append(' ');
+                }
+                sb.Append(i == 0 ? char.ToUpper(c) : c);
+            }
+            return sb.ToString().Trim();
+        }
+
+        // Build a BIDS-compatible Levels JSON object from a string[] of "value:description" entries.
+        // Each element is "value:description" or just "value" (value used as its own description).
+        // Output: {"value": "description", ...}
+        private static string BuildLevelsJson(string[] levels)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{");
+            for (int i = 0; i < levels.Length; i++)
+            {
+                if (i > 0) sb.Append(", ");
+                string entry = levels[i].Trim();
+                int colon = entry.IndexOf(':');
+                string key = colon >= 0 ? entry.Substring(0, colon).Trim() : entry;
+                string desc = colon >= 0 ? entry.Substring(colon + 1).Trim() : entry;
+                sb.Append($"\"{EscapeJsonString(key)}\": \"{EscapeJsonString(desc)}\"");
+            }
+            sb.Append("}");
+            return sb.ToString();
+        }
+
+        // Escapes characters that are unsafe inside a JSON string literal.
+        private static string EscapeJsonString(string s)
+        {
+            if (s == null) return "";
+            return s.Replace("\\", "\\\\")
+                     .Replace("\"", "\\\"")
+                     .Replace("\n", "\\n")
+                     .Replace("\r", "\\r")
+                     .Replace("\t", "\\t");
+        }
+
         #endregion
 
     }

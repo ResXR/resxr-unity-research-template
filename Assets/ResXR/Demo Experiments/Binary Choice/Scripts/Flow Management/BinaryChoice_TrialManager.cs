@@ -20,18 +20,7 @@ public class BinaryChoice_TrialManager : ResXRSingleton<BinaryChoice_TrialManage
 
         ChoiceResult result = await _choicesManager.SetImagesAndWaitForChoice(_currentTrial.StimuliPair);
 
-        // Stimulus window: single event with duration = time from display to choice
-        ResXRDataManager.Instance.ReportEvent(
-            $"stimulus:{_currentTaskName}_t{_currentTrialIndex}",
-            result.displayTime,
-            result.reactionTime);
-
-        // Choice made: point event
-        ResXRDataManager.Instance.ReportEvent(
-            $"choice_made:option={result.chosenOption}:image={result.chosenImageName}",
-            result.choiceTime, 0f);
-
-        ResXRDataManager.Instance.LogChoice(
+        ChoiceEvents.Log(
             _currentTaskName,
             _currentTrialIndex,
             _currentTrial.StimuliPair.stimulusASprite.name,
@@ -74,18 +63,13 @@ public class BinaryChoice_TrialManager : ResXRSingleton<BinaryChoice_TrialManage
         float endTime = Time.realtimeSinceStartup;
         string trialName = $"{_currentTaskName}_t{_currentTrialIndex}";
 
-        ResXRDataManager.Instance.ReportEvent(
-            $"trial_end:{trialName}",
-            endTime, 0f);
-
-        ResXRDataManager.Instance.LogCustom(new TrialsData(
-            ResXRDataManager.Instance.SessionTime,
+        TrialsData.Log(
             _currentTaskName,
-            _currentTrialIndex.ToString(),
+            _currentTrialIndex,
             trialName,
             _trialStartTime,
             endTime
-        ));
+        );
 
         Debug.Log("[TrialManager] Trial Ended");
     }

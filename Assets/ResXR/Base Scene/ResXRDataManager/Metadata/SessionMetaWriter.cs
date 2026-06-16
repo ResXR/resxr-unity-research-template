@@ -1,4 +1,4 @@
-// Writes session_metadata.json with detected skeleton sizes and flags.
+// Writes {sessionTime}_SessionMetadata.json with detected skeleton sizes and flags.
 // Metadata is designed to support later Motion-BIDS export (Python pipeline generates BIDS files).
 
 using System;
@@ -77,16 +77,15 @@ namespace ResXRData
         public bool eyes_enabled;
         public bool controllers_enabled;
 
-        // ---- Detected skeleton sizes (for traceability) ----
-        public int detected_hand_bones = 0;
-        public bool overprovisioned_hand_bones = false;
-        public int detected_body_joints = 0;
-        public bool overprovisioned_body_joints = false;
-        public int detected_face_expr_count = 0;
+        // ---- Schema allocation sizes (column counts used to build the CSV; 0 = modality disabled) ----
+        public int schema_hand_bones = 0;
+        public int schema_body_joints = 0;
+        public int schema_face_expressions = 0;
 
         // ---- Motion-BIDS / motion.json provenance (for pipeline) ----
         public string manufacturers_model_name_raw = "";
         public string software_versions_raw = "";
+        public string horizon_os_version = "";
         public string device_serial_number = "";
         public string device_serial_number_note = "";
 
@@ -102,15 +101,25 @@ namespace ResXRData
 
     public static class SessionMetaWriter
     {
-        private static string FileName = "session_metadata.json";
-        public static string GetPath(string directory) => Path.Combine(directory, FileName);
+        private const string BaseFileName = "SessionMetadata.json";
+
+        /// <summary>Returns the full path for the session metadata file (without writing it).</summary>
+        public static string GetPath(string directory, string fileNamePrefix = null)
+        {
+            string fileName = string.IsNullOrWhiteSpace(fileNamePrefix)
+                ? BaseFileName
+                : $"{fileNamePrefix}_{BaseFileName}";
+            return Path.Combine(directory, fileName);
+        }
 
         public static void WriteInitial(string directory, string fileNamePrefix, SessionMetaData meta)
         {
-            FileName = string.IsNullOrWhiteSpace(fileNamePrefix) ? FileName : $"{fileNamePrefix}_{FileName}";
+            // Build the prefixed filename without mutating any static state —
+            // keeps the method safe to call more than once (e.g., in Play Mode tests).
+            string path = GetPath(directory, fileNamePrefix);
             Directory.CreateDirectory(directory);
             var json = JsonUtility.ToJson(meta, prettyPrint: true);
-            AtomicWrite(GetPath(directory), json);
+            AtomicWrite(path, json);
         }
 
         // Small safety: write to .tmp then move
