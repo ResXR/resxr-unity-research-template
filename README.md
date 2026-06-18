@@ -1,272 +1,70 @@
-# ResXR Research Template
+# ResXR Unity Research Template
 
-A comprehensive Unity XR template designed specifically for Meta Quest research experiments. Build VR research applications with built-in support for hand tracking, eye tracking, face expression tracking, comprehensive data collection, and more.
+A Unity 6 project template for building XR behavioral experiments that run standalone on Meta Quest headsets. Records head, hand, eye, face, and body tracking at 100 Hz (Unity's `FixedUpdate`) alongside experiment events and custom data tables, writing everything to per-session CSV files and a `SessionMetadata.json` sidecar. A persistent Base Scene holds `ResXRPlayer` (tracking) and `ResXRDataManager` (recording); experiment scenes load additively on top and are organized with a Session → Task → Trial flow hierarchy. It is a "clear box" template: researchers own and modify every script directly rather than working around opaque base classes.
 
-> **⚠️ Note**: This project is still under construction. For inquiries, help, or support, please contact: **resxr.toolkit@gmail.com**
+This template is the recording half of ResXR; the per-session packages it produces are processed by the [`resxr-python-pipeline`](https://github.com/ResXR/resxr-python-pipeline) into Motion-BIDS datasets. The two share no code — only the [output file format](https://docs.resxr.org/unity/data-output/).
 
-## 🎯 Overview
+## 📖 Full documentation
 
-ResXR is a complete framework for building VR research applications on Meta Quest headsets. It provides:
+**[https://docs.resxr.org/unity/](https://docs.resxr.org/unity/)** — installation, quickstart, paradigms, recording options, data output, architecture, scripting API, and extension guide. The pages below are the source of truth; this README is only a quickstart.
 
-- **Hand Tracking & Gesture Recognition** - Full hand tracking with pinch detection
-- **Eye Tracking & Gaze Analysis** - Real-time eye gaze tracking and focused object detection
-- **Face Expression Tracking** - Face expression weights and validity tracking
-- **Comprehensive Data Collection** - Automatic CSV export of all tracking data
-- **Scene Management** - Additive scene loading with smooth transitions
+## Install
 
-## 🧠 Core Philosophy: "Clear Box" Design
+1. Click **"Use this template"** on GitHub and clone your new repository.
+2. Open Unity Hub, click **Add project from disk**, and select the folder.
+   Unity 6000.0.68f1 with Android Build Support is required.
+   Runs on Meta Quest 2/3/Pro; **eye and face tracking require Quest Pro.**
+3. On first launch Unity auto-installs the Meta XR SDK (v 78.0.0) and all other package dependencies — no manual steps needed.
 
-Unlike other solutions that provide black-box classes, ResXR is designed as a **transparent, clear box** where researchers **own and modify every part of their experiment**. The template provides structure, base classes, and examples, but you are expected to copy, modify, and customize the code for your specific research needs. Everything is open and transparent - you understand exactly how your experiment runs under the hood.
+See [Installation](https://docs.resxr.org/unity/installation/) for eye/face tracking setup on Quest Pro and Quest Link / Meta XR Simulator configuration.
 
-## 📋 Prerequisites
+## Run
 
-- **Unity 2021.3 or later**
-- **Meta Quest SDK (OVR)** - Automatically installed via Unity Package Manager (see below)
-- **Meta Quest headset** (Quest 2, Quest Pro, Quest 3)
-- **Basic knowledge** of Unity and C#
+Open `Assets/ResXR/Base Scene/Base Scene.unity`, enable your target experiment in **File → Build Profiles** (Base Scene must be listed first), then press **Play** in the editor or use **File → Build And Run** for a device build.
 
-## 🚀 Quick Start
+Session data is written to `…/Temp/ResXR_EditorLogs/` in the editor, or `Application.persistentDataPath` (`/sdcard/Android/data/<bundle.id>/files/`) on device. Feed the session folder to `resxr-python-pipeline` for BIDS conversion.
 
-### 1. Create a New Repository from Template
+Follow the [Quickstart](https://docs.resxr.org/unity/quickstart/) for a full walkthrough.
 
-1. Click the **"Use this template"** button on GitHub
-2. Create a new repository with your desired name
-3. Clone your new repository locally:
+## Documentation map
 
-```bash
-git clone <your-repository-url>
-cd <your-repository-name>
-```
+| Topic | Page |
+| ----- | ---- |
+| Project setup and SDK configuration | [Installation](https://docs.resxr.org/unity/installation/) |
+| First experiment walkthrough | [Quickstart](https://docs.resxr.org/unity/quickstart/) |
+| Included demo experiments (Binary Choice, Maze, Museum) | [Paradigms](https://docs.resxr.org/unity/paradigms/) |
+| Recording subsystems and toggle reference | [Recording](https://docs.resxr.org/unity/recording/) |
+| Output folder layout, CSV/JSON schema | [Data Output](https://docs.resxr.org/unity/data-output/) |
+| Base Scene, ResXRPlayer, ResXRDataManager, flow hierarchy | [Architecture](https://docs.resxr.org/unity/architecture/) |
+| `ReportEvent`, `LogCustom`, `ResXRPlayer` API, flow hooks | [Scripting & API](https://docs.resxr.org/unity/scripting/) |
+| Custom collectors, multi-experiment projects, performance tuning | [Extending the Template](https://docs.resxr.org/unity/extending/) |
 
-### 2. Open in Unity
+## License
 
-1. Open Unity Hub
-2. Click "Add" and select the cloned project folder
-3. Unity will detect the project and open it
+Apache License 2.0 — see [LICENSE](LICENSE).
 
-### 3. SDK Installation (Automatic)
+The Meta XR SDK (auto-installed via UPM) is provided by Meta Platform Technologies, LLC under the Meta SDK License Agreement and is not covered by Apache 2.0.
 
-This project requires the Meta XR SDK, which is automatically installed via Unity Package Manager based on package dependencies defined in `Packages/manifest.json`. The SDK itself is not included in this repository. When you open the project in Unity for the first time, Unity will automatically download and install the required Meta XR packages (version 78.0.0).
+Additional vendored libraries (UniTask, NaughtyAttributes, DOTween) are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-### 4. Create Your First Experiment
+## Contributing
 
-1. Navigate to `Assets/Project Folder/`
-2. Duplicate `New ResXRScene [Duplicate].unity`
-3. Rename it to your experiment name
-4. Add it to Build Settings (after Base Scene)
-5. **Important**: The Base Scene must be opened **with** your experiment scene additively. The Base Scene contains the player (`ResXRPlayer`) and data manager (`ResXRDataManager`) which run continuously throughout your experiment, even when scenes are changed. Your experiment scene will be loaded additively on top of the Base Scene.
-6. Edit the `SceneReferencer` and Flow Management scripts (SessionManager, TaskManager, TrialManager) directly to add your experiment references and logic
-7. Build and run!
+Contributions are welcome. Fork the repository, create a feature branch, and open a pull request.
 
-## 📁 Project Structure
+## Acknowledgments
 
-```
-Assets/ResXR/
-├── Base Scene/              # Core persistent scene and systems
-│   ├── ResXRPlayer/        # Player controller, hand/eye/face tracking
-│   ├── ResXRDataManager/# Data collection and export system
-│   ├── SceneManagement/    # Scene loading and transitions
-│   └── ResXR_RoomCalibrator/# Room-scale calibration
-├── Flow Management/        # Session/Task/Trial flow control
-├── Utilities/              # Helper scripts and utilities
-│   ├── EditorUtilities/    # Editor tools
-│   ├── General Scripts/    # Singleton, utilities, extensions
-├── Detectors/              # Interaction detection system
-├── Demo Experiments/       # Example implementations
-│   ├── Binary Choice/      # Two-choice decision experiment
-│   ├── Maze/               # Navigation experiment
-│   └── Museum/             # Art viewing experiment
-└── Meta components/        # Meta-specific integrations
-```
+ResXR builds on the early work of the [TAUXR Research Template](https://github.com/TAU-XR/TAUXR-Research-Template) by [TAU-XR Studio](https://github.com/TAU-XR) and [talmzip](https://github.com/talmzip).
 
-## ✨ Key Features
+## Citation
 
-### Data Collection
-- **Automatic Continuous Data**: Head, hands, eyes, body, face tracking at 100Hz — logged to CSV automatically with zero setup. Enable the recording options you need in the Inspector.
-- **Gaze**: Combined (cyclopean) gaze hit point and focused object always recorded when eye tracking is on. Optional **per-eye** hit points and focused objects (left/right) via the "Include Separate Eyes Gaze" recording option—enables 3 raycasts per frame instead of 1; turn off in heavy scenes to save performance.
-- **Custom Experiment Data**: Log your own experiment-specific data — choices, reaction times, trial metadata, anything your paradigm needs. Define a simple C# class with your columns; the DataManager creates the CSV, writes the header, and appends rows automatically. No file handling required.
-- **Column Documentation (BIDS-compatible)**: Annotate each column in your data class with a one-line description (`[ColumnInfo("what this column means")]`). The template enforces documentation — missing annotations are flagged as errors at compile time in the Editor. At session end, all column descriptions are compiled into a sidecar JSON file for reproducibility and downstream pipelines.
-- **Quick Event Markers** (`Events.csv`): Log named experiment milestones — trial starts, stimulus onsets, participant responses — with a single line of code. Built on the same custom data class mechanism, with an instant reporter that requires no class setup: `ResXRDataManager.Instance.ReportEvent("trial_start", Time.realtimeSinceStartup, 0f)`
-- **On-device Debug Logging** (`ResXRDebugLogs.csv`): Write timestamped text notes to a CSV file during a session — invaluable when debugging device builds where the Unity Console is unavailable. Call `ResXRDataManager.Instance.LogLineToFile("your note")` from anywhere. *(Viewing `Debug.Log` on device via adb logcat is always an option — `ResXRDebugLogs` is simply a more convenient alternative that lives with your session data.)*
-- **CSV Export**: All data exported to organized CSV files
-- **Metadata**: Automatic session metadata generation (supports later Motion-BIDS export; includes device offset, tracking origin, reference frames; `build_info_available` flags whether build provenance fields are present, otherwise they are left empty)
-
-<small><font color="cornflowerblue">The companion ResXR Python pipeline reads your custom data tables and generates BIDS-compatible <code>*_events.tsv</code> files automatically — lightweight per-table CSVs on the headset, one unified events file in your converted dataset.</font></small>
-
-### ResXRPlayer API - Easy Access to Tracking Components
-While every VR app has tracking, ResXR provides a **simple, unified API** through `ResXRPlayer` singleton that gives you easy access to all tracking components without digging through OVR internals:
-
-- **Hand Tracking**: `ResXRPlayer.Instance.HandLeft/HandRight` - Direct access to hand tracking, pinch detection, and finger colliders
-- **Eye Tracking**: `ResXRPlayer.Instance.FocusedObject`, `EyeGazeHitPosition` (combined gaze, always when both eyes confident). Per-eye: `LeftEyeGazeHitPosition`, `RightEyeGazeHitPosition`, `LeftFocusedObject`, `RightFocusedObject`, `HasLeftEyeHit`, `HasRightEyeHit` when the separate-eyes recording option is enabled. The Data Manager sets whether ResXREyeTracker runs 1 raycast (combined only) or 3 (left, right, combined) via that option.
-- **Face Tracking**: `ResXRPlayer.Instance.OVRFace` - Direct access to face expression weights and validity (OVRFaceExpressions is on the ResXRPlayer prefab and assigned in the Inspector)
-- **Body Tracking**: Body joint positions and calibration
-- **Player Transforms**: `PlayerHead`, `RightHand`, `LeftHand` - Easy access to player transforms
-- **Input Managers**: `ControllersInputManager`, `PinchingInputManager` - Unified input handling
-
-See `ResXRPlayer.cs` for the complete API. Access everything through `ResXRPlayer.Instance` - no need to find OVR components manually!
-
-### Scene Management
-- **Additive Loading**: Experiment scenes are loaded additively on top of the Base Scene, which must remain open throughout your experiment
-- **Persistent Base Scene**: The Base Scene contains the player (`ResXRPlayer`) and data manager (`ResXRDataManager`) that run continuously, even when switching between experiment scenes
-- **Smooth Transitions**: Automatic fade effects during scene changes
-- **Player Repositioning**: Automatic player positioning per scene
-
-### Interaction Systems
-- **Pinching**: Hand-based pinch interaction with priority-based selection
-- **Controllers**: Quest controller input with haptic feedback
-- **Touch**: Collider-based touch detection
-
-### Flow Management
-- **Hierarchical Structure**: Session → Task → Trial organization
-- **Edit the scripts directly**: Flow Management scripts (`SessionManager`, `TaskManager`, `TrialManager`) are intentionally simple stubs you modify directly for your experiment. They are part of the clear-box philosophy: you own them and edit them. By default some methods are placeholders; implement your own Start/End/Between logic directly in the scripts. The demo experiments ship with copies named e.g. `Maze_SessionManager` for convenience when including multiple experiments in one project.
-- **Clear Ownership**: You own and modify your experiment code
-
-## 📚 Documentation
-
-- **[Full Component Documentation](ResXR_Template_Documentation.md)** - Comprehensive guide to all components
-- **[Data Manager Documentation](Assets/ResXR/Base%20Scene/ResXRDataManager/Doc/ResXRDataManager_README.txt)** - Data collection system details
-- **Demo Experiments** - Working examples in `Assets/ResXR/Demo Experiments/`
-
-## 🎓 Learning Resources
-
-### Demo Experiments
-
-The template includes three complete demo experiments:
-
-1. **Binary Choice** - Two-choice decision-making experiment
-2. **Maze** - Navigation experiment with coin collection
-3. **Museum** - Art viewing experiment with gaze tracking
-
-Each demo shows:
-- Flow Management structure (Session/Task/Trial)
-- Custom data logging
-- Interaction patterns
-- Scene organization
-
-### Getting Started Guide
-
-1. **Read the Documentation** - Start with `ResXR_Template_Documentation.md`
-2. **Explore Demo Experiments** - See working examples in `Assets/ResXR/Demo Experiments/`
-3. **Duplicate the Template Scene** - Use `Assets/Project Folder/New ResXRScene [Duplicate].unity`
-4. **Modify Directly** - Own your experiment code - modify scripts directly
-5. **Build Your Experiment** - Add your research logic to the template structure
-
-## 🔧 Usage Example
-
-```csharp
-// Access player instance
-ResXRPlayer player = ResXRPlayer.Instance;
-
-// Fade to black
-await player.FadeViewToColor(Color.black, 1.0f);
-
-// Check if player is looking at something
-if (player.FocusedObject != null)
-{
-    Debug.Log($"Looking at: {player.FocusedObject.name}");
-}
-
-// Wait for pinch gesture
-await player.PinchingInputManager.WaitForHoldAndRelease(HandType.Right, 1.0f);
-
-// Pipeline-friendly event marker (Events.csv); onset uses same clock as continuous CSVs
-ResXRDataManager.Instance.ReportEvent("stimulus_on", Time.realtimeSinceStartup, 0f);
-
-// Choice trials: see LogChoice on ResXRDataManager for the full signature
-
-// Switch scenes
-await ResXRSceneManager.Instance.SwitchActiveScene("NextExperimentScene");
-```
-
-## 🏗️ Building Your Experiment
-
-### Step 1: Create Your Scene
-1. Duplicate `Assets/Project Folder/New ResXRScene [Duplicate].unity`
-2. Rename to your experiment name
-3. Add to Build Settings (after Base Scene)
-4. **Scene Architecture**: The Base Scene and your experiment scene must be opened **additively** together. The Base Scene contains:
-   - `ResXRPlayer` - Player controller with hand/eye/face tracking
-   - `ResXRDataManager` - Data collection system
-   - Other core systems that persist throughout your experiment
-   
-   These systems run continuously and remain active even when you switch between experiment scenes. Your experiment scene is loaded additively on top of the Base Scene, allowing you to change experiment content while keeping the player and data collection systems running.
-
-### Step 2: Modify SceneReferencer
-Open `SceneReferencer.cs` and add your experiment references:
-
-```csharp
-public class SceneReferencer : ResXRSingleton<SceneReferencer>
-{
-    [Header("My Experiment Objects")]
-    public GameObject stimulus;
-    public InstructionsPanel instructions;
-    public Transform targetPosition;
-    
-    [Header("Configuration")]
-    public float trialDuration = 10f;
+```bibtex
+@software{resxr,
+  title = {ResXR: XR Experiment Recording Template},
+  year  = {2026},
+  url   = {https://github.com/ResXR/resxr-unity-research-template}
 }
 ```
 
-### Step 3: Set Up Flow Management
-The Flow Management scripts in `Assets/ResXR/Flow Management/` are template stubs you **edit directly**. Add SessionManager, TaskManager, and TrialManager to your scene and implement `StartSession`, `EndSession`, `BetweenTasksFlow`, `StartTrial`, `EndTrial`, etc. in those scripts. The demo experiments use renamed copies (e.g. `Maze_SessionManager`) only for convenience when shipping multiple experiments in one project.
+## Support
 
-```csharp
-// Open SessionManager.cs (and TaskManager.cs, TrialManager.cs) and implement the placeholder methods
-// Add the components to a GameObject in your experiment scene and configure tasks/trials in the Inspector
-```
-
-### Step 4: Add Your Research Logic
-- Edit the Flow Management scripts to add your Start/End/Between logic
-- Configure tasks and trials in the Inspector
-- Add custom data classes for logging
-- Implement your experiment-specific logic directly in SessionManager, TaskManager, and TrialManager
-
-## 🤝 Contributing
-
-This is a research template. Contributions, improvements, and feedback are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the Apache License, Version 2.0.
-
-### Third-Party Dependencies
-
-This project requires the Meta XR SDK, which is automatically installed via Unity Package Manager based on package dependencies defined in `Packages/manifest.json`. The SDK itself is not included in this repository.
-
-The Meta XR SDK is provided by Meta Platform Technologies, LLC and its affiliates, and is licensed under the Meta SDK License Agreement. The Meta XR SDK is not covered by the Apache License 2.0 and is subject to its own license terms.
-
-Additional third-party components (including open-source Unity plugins vendored under `Assets/`, such as **UniTask**, **NaughtyAttributes**, and **DOTween**) are listed with license notes in **[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)**.
-
-## 🙏 Acknowledgments
-
-ResXR builds upon the early work of the [TAUXR Research Template](https://github.com/TAU-XR/TAUXR-Research-Template), developed by the [TAU-XR Studio](https://github.com/TAU-XR) and [talmzip](https://github.com/talmzip).
-
-Thanks to the authors of open-source tools used in this template, including **UniTask** (Cysharp), **NaughtyAttributes** (Denis Rizov / community), and **DOTween** (Demigiant), as well as other dependencies documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-We would like to thank the original contributors and developers for their work on the initial template, which helped shape the early direction of this project.
-
-## 📞 Support
-
-For questions, issues, or inquiries:
-- **Email**: resxr.toolkit@gmail.com
-- Check the [Full Documentation](ResXR_Template_Documentation.md)
-- Review the Demo Experiments for examples
-- Examine the source code (it's all transparent!)
-
-## 🎯 Best Practices
-
-1. **Own Your Code** - Edit the Flow Management scripts (SessionManager, TaskManager, TrialManager) directly; they are stubs you implement for your experiment
-2. **Understand the System** - Read the code to understand how it works
-3. **Use Demo Experiments** - Learn from working examples
-4. **Log Everything** - Use ResXRDataManager for all experiment data
-5. **Follow Flow Hierarchy** - Use Session → Task → Trial structure
-6. **Keep It Transparent** - All code is open - understand and customize
-
----
-
-**Remember**: ResXR is a "clear box" template. You own and modify your experiment code. Everything is transparent and open for you to understand and customize.
+**Email**: [resxr.toolkit@gmail.com](mailto:resxr.toolkit@gmail.com)
