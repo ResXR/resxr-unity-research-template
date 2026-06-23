@@ -44,16 +44,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4fdc41efd78f6a489aaa2f5cd2220a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  exportInEditor: 1
-  saveFilePath: D:\Data Manager V2 files\Test Data From Editor
+  exportInEditor: 0
+  saveFilePath: 
   csvDelimiter: ','
   recordingOptions:
     includeNodes: 1
     includeEyes: 1
     includeHands: 1
-    includeBody: 1
-    includePerf: 1
+    includeBody: 0
+    includePerformance: 1
     includeGaze: 1
-    includeRecenter: 1
+    includeSeparateEyesGaze: 1
+    includeSystemStatus: 1
     customTransformsToRecord: []
   recordFaceExpressions: 1

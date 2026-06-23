@@ -78,7 +78,7 @@ Fixed values that document the coordinate conventions used in every CSV file.
 
 ## Recording Options
 
-1:1 with the inspector toggles on the `ResXR_DataManager_V2` prefab. Each flag controls both what is logged to CSV and what columns are present in `ContinuousData.csv`.
+1:1 with the inspector toggles on the `ResXR_DataManager` prefab. Each flag controls both what is logged to CSV and what columns are present in `ContinuousData.csv`.
 
 | Field | Source | Meaning | Example / Values |
 |---|---|---|---|

@@ -1,5 +1,4 @@
 using Cysharp.Threading.Tasks;
-using System;
 using UnityEngine;
 
 public class EnvironmentCalibrator : ResXRSingleton<EnvironmentCalibrator>
@@ -11,7 +10,8 @@ public class EnvironmentCalibrator : ResXRSingleton<EnvironmentCalibrator>
     [SerializeField] private GameObject _btnConfirm;
     [SerializeField] private GameObject _btnRedo;
 
-    [SerializeField] private FollowTransform
+    [SerializeField]
+    private FollowTransform
         _playerMarkedPosition; // a sphere following the exact position players mark when they pinch. Changes every frame according to players' hand.
 
     private float PINCH_HOLD_DURATION = 1f;

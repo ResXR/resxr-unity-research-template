@@ -24,7 +24,7 @@ Everything else — file creation, headers, flushing, crash safety, metadata —
 
 ## Inspector: Recording Options
 
-Set on the `ResXR_DataManager_V2` prefab in your scene:
+Set on the `ResXR_DataManager` prefab in your scene:
 
 | Option | What it does |
 |---|---|
@@ -35,7 +35,6 @@ Set on the `ResXR_DataManager_V2` prefab in your scene:
 | **Include Hands** | Hand tracking, bone positions, confidence |
 | **Include Body** | Body joint positions and calibration |
 | **Include Face** | Face expression weights and validity (`FaceExpressions.csv`) |
-| **Include Performance** | Reserved for performance metrics (optional) |
 | **Include System Status** | Recenter events, tracking origin changes, user presence, tracking loss |
 | **Custom Transforms To Record** | Drag any scene object — its position/rotation appears as extra columns in `ContinuousData.csv` |
 
