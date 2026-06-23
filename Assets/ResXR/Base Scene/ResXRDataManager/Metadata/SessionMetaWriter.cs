@@ -54,7 +54,7 @@ namespace ResXRData
         public int ovr_step_value = 0;
 
         // ---- Schema / rotation ----
-        public string schema_rev = "2";
+        public string schema_rev = "3";
         public string rotation_euler_order = "ZXY";
         public string rotation_units = "degrees";
 
