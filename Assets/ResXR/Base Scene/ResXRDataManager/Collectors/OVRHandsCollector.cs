@@ -44,6 +44,7 @@ namespace ResXRData
 
         private int _handBoneCount = 0;
         private bool _includeHands = false;
+        private bool _boneCountMismatchLogged = false;
 
         public void Configure(ColumnIndex schema, RecordingOptions options)
         {
@@ -189,6 +190,20 @@ namespace ResXRData
             // Bone arrays
             int positionsCount = handState.BonePositions != null ? handState.BonePositions.Length : 0;
             int rotationsCount = handState.BoneRotations != null ? handState.BoneRotations.Length : 0;
+
+            // One-time integrity check: the live GetHandState bone-array length must match the schema's
+            // bone count (_handBoneCount, the same DetectHandBoneCount() the schema was built from).
+            // They can only diverge if the SDK's GetHandState data path stops agreeing with the
+            // HandSkeletonVersion-based count path — exactly the kind of regression an SDK update could
+            // introduce (and the class of bug that produced an earlier hand mismatch). Logged at most once.
+            if (!_boneCountMismatchLogged && positionsCount > 0 && positionsCount != _handBoneCount)
+            {
+                _boneCountMismatchLogged = true;
+                string msg = $"[ResXR] Hand bone count mismatch: schema/collector expect {_handBoneCount} bones " +
+                             $"but GetHandState returned {positionsCount}. Hand bone columns in ContinuousData.csv may be padded or truncated.";
+                Debug.LogError(msg);
+                ResXRDataManager.Instance?.LogLineToFile(msg);
+            }
 
             for (int i = 0; i < positionsCount; i++)
             {

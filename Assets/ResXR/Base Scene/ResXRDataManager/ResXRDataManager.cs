@@ -175,7 +175,7 @@ namespace ResXRData
         private ColumnIndex _continuousSchema;
         private ColumnIndex _faceSchema;
 
-        // schema allocation counts (set once in DoInAwake; read by WriteMetadata and ValidateSchemaVsDevice)
+        // schema allocation counts (set once in DoInAwake; read by WriteMetadata)
         private int _schemaHandBonesCount;
         private int _schemaBodyJointsCount;
         private int _schemaFaceExpressionsCount;
@@ -356,10 +356,8 @@ namespace ResXRData
 
             if (recordingOptions.includeBody)
             {
-                await StartBodyTrackingAsync(BodyJointSet.FullBody, BodyTrackingFidelity2.High);
+                await StartBodyTrackingAsync(BodyJointSet.UpperBody, BodyTrackingFidelity2.High);
             }
-
-            ValidateSchemaVsDevice();
         }
 
         private void FixedUpdate()
@@ -450,7 +448,7 @@ namespace ResXRData
         #endregion
 
         #region Tracking Initializing 
-        public async UniTask StartBodyTrackingAsync(BodyJointSet jointSet = BodyJointSet.FullBody,
+        public async UniTask StartBodyTrackingAsync(BodyJointSet jointSet = BodyJointSet.UpperBody,
                                                    BodyTrackingFidelity2 fidelity = BodyTrackingFidelity2.High)
         {
             // Wait a couple of frames so OVR/Link fully initializes
@@ -642,46 +640,6 @@ namespace ResXRData
 
             // 4) Finally write
             SessionMetaWriter.WriteInitial(GetOutputDirectory(), SessionTime, meta);
-        }
-
-        // Called from Start() after body tracking is initialised (so GetSkeleton2(Body) returns live data).
-        // Compares the live device bone/joint counts against the schema allocation used to build the CSV.
-        // A mismatch means the CSV has padding or truncated columns — log loudly so it can't be missed.
-        private void ValidateSchemaVsDevice()
-        {
-            if (recordingOptions.includeHands)
-            {
-                OVRPlugin.Skeleton2 leftSkel = default, rightSkel = default;
-                bool haveLeft  = OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandLeft,  ref leftSkel);
-                bool haveRight = OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.HandRight, ref rightSkel);
-                if (haveLeft || haveRight)
-                {
-                    int liveCount = 0;
-                    if (haveLeft)  liveCount = Math.Max(liveCount, (int)leftSkel.NumBones);
-                    if (haveRight) liveCount = Math.Max(liveCount, (int)rightSkel.NumBones);
-                    if (liveCount != _schemaHandBonesCount)
-                    {
-                        string msg = $"[ResXR] Hand bone count mismatch: schema allocated {_schemaHandBonesCount} columns but device reported {liveCount}. Hand bone columns in ContinuousData.csv may be padded or truncated.";
-                        Debug.LogError(msg);
-                        LogLineToFile(msg);
-                    }
-                }
-            }
-
-            if (recordingOptions.includeBody)
-            {
-                OVRPlugin.Skeleton2 bodySkel = default;
-                if (OVRPlugin.GetSkeleton2(OVRPlugin.SkeletonType.Body, ref bodySkel) && bodySkel.NumBones > 0)
-                {
-                    int liveCount = (int)bodySkel.NumBones;
-                    if (liveCount != _schemaBodyJointsCount)
-                    {
-                        string msg = $"[ResXR] Body joint count mismatch: schema allocated {_schemaBodyJointsCount} columns but device reported {liveCount}. Body joint columns in ContinuousData.csv may be padded or truncated.";
-                        Debug.LogError(msg);
-                        LogLineToFile(msg);
-                    }
-                }
-            }
         }
 
         private static string GetHorizonOSVersion()

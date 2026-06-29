@@ -11,10 +11,13 @@ namespace ResXRData
     {
         public string CollectorName => "OVRBodyCollector";
         private const Step SampleStep = OvrSampling.StepDefault;   // Plugin maps Physics -> Render when needed
-        private const BodyJointSet JointSet = BodyJointSet.FullBody; //UpperBody or FullBody if you enable it in options
+        // Upper body only — legs are intentionally NOT recorded. Must match the joint set passed to
+        // StartBodyTracking2 in ResXRDataManager, and the schema (DetectBodyJointCount / Body_End = 70).
+        private const BodyJointSet JointSet = BodyJointSet.UpperBody;
 
         private bool _includeBody = false;
         private int _jointCount = 0;
+        private bool _jointCountMismatchLogged = false;
 
         // Root/body state columns
         private int _idxBodyTime = -1;
@@ -123,6 +126,20 @@ namespace ResXRData
             // Per-joint
             int count = bodyState.JointLocations != null ? bodyState.JointLocations.Length : 0;
             int limit = Math.Min(_jointCount, count);
+
+            // One-time integrity check: the live GetBodyState4 joint-array length must match the
+            // schema's joint count (_jointCount, the same DetectBodyJointCount() the schema was built
+            // from, aligned with the UpperBody set requested above). They can only diverge if the SDK's
+            // body-state data path stops agreeing with the schema's count path — the kind of regression
+            // an SDK update could introduce. Logged at most once per session.
+            if (!_jointCountMismatchLogged && count > 0 && count != _jointCount)
+            {
+                _jointCountMismatchLogged = true;
+                string msg = $"[ResXR] Body joint count mismatch: schema/collector expect {_jointCount} joints " +
+                             $"but GetBodyState4 returned {count}. Body joint columns in ContinuousData.csv may be padded or truncated.";
+                Debug.LogError(msg);
+                ResXRDataManager.Instance?.LogLineToFile(msg);
+            }
 
             for (int j = 0; j < limit; j++)
             {
