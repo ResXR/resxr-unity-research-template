@@ -6,7 +6,7 @@ using UnityEngine;
 public class ImagesRating : MonoBehaviour
 {
     [SerializeField] private InstructionsPanel ratingPanel;
-    [SerializeField] private Slider ratingSlider;
+    [SerializeField] private ResXRSlider ratingSlider;
     [SerializeField] private SpriteRenderer[] imagesToRate;
     private int currentImageIndex = 0;
 

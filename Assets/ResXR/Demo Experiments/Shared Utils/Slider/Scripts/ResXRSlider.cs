@@ -11,7 +11,7 @@ using NaughtyAttributes;
 
 
 [ExecuteAlways]
-public class Slider : MonoBehaviour
+public class ResXRSlider : MonoBehaviour
 {
     [InfoBox("A VR Slider allowing users to select a value by moving a handle along a line between two endpoints. Supports discrete steps or continuous values, with visual step marks and optional confirmation button.\nTo resize the slider, move the 'Start Point' and 'End Point' transforms.")]
 

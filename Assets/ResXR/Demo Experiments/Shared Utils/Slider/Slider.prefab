@@ -61,7 +61,7 @@ MonoBehaviour:
   AllowContinuousValues: 0
   hideOnStart: 0
   requireSliderTouchBeforeConfirm: 0
-  confirmButton: {fileID: 0}
+  confirmButton: {fileID: 7750222649013698535}
   stepMarkPrefab: {fileID: 494727271243741250, guid: 123d0f04b4916e74cbe1c03c0d4094a8, type: 3}
   stepMarkParent: {fileID: 1739650718649304552}
   minPoint: {fileID: 7446913583976677538}
@@ -1305,3 +1305,14 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4989718378928432998, guid: 96248df850574fd4b9e53810e9979a45, type: 3}
   m_PrefabInstance: {fileID: 8550622613449179115}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7750222649013698535 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2100854018869461004, guid: 96248df850574fd4b9e53810e9979a45, type: 3}
+  m_PrefabInstance: {fileID: 8550622613449179115}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecb554a5b6c120e48b45e4400e8f514b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
