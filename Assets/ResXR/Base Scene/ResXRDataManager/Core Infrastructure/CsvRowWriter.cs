@@ -8,11 +8,18 @@ using System.Collections;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using Unity.Profiling;
 
 namespace ResXRData
 {
     public sealed class CsvRowWriter : IDisposable
     {
+        // Static: aggregates across every CsvRowWriter instance (Continuous, Face, custom
+        // tables, ResXRDataPerfSamples). Cheap enough to leave enabled permanently — a
+        // ProfilerMarker is a few nanoseconds per Begin/End even with no profiler attached.
+        private static readonly ProfilerMarker s_WriteRowMarker = new ProfilerMarker("ResXR.CsvRowWriter.WriteRow");
+        private static readonly ProfilerMarker s_FlushMarker = new ProfilerMarker("ResXR.CsvRowWriter.Flush");
+
         private readonly TextWriter _writer;
         private readonly string _delimiter;
         private bool _headerWritten;
@@ -43,6 +50,8 @@ namespace ResXRData
         // Write a single row. Writes header first if not already written.
         public void WriteRow(ColumnIndex schema, object[] values, BitArray columnIsSet)
         {
+            s_WriteRowMarker.Begin();
+
             if (!_headerWritten)
             {
                 WriteHeader(schema);
@@ -62,7 +71,16 @@ namespace ResXRData
             }
 
             _writer.WriteLine();
+            s_WriteRowMarker.End();
+
+            // No buffering: every row is flushed immediately so data survives a Unity crash.
+            // Isolated in its own marker since this synchronous per-row disk write is the
+            // single biggest suspected latency cost at 100Hz — see the perf-test harness under
+            // Assets/ResXR/Testing/PerfTest/.
+            s_FlushMarker.Begin();
             _writer.Flush();
+            s_FlushMarker.End();
+
             RowCount++;
         }
 

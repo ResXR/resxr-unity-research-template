@@ -39,7 +39,7 @@ MonoBehaviour:
     - line: '|   useOnDemandResources: 0'
     - line: '|   accelerometerFrequency: 60'
     - line: '|   companyName: ResXR'
-    - line: '|   productName: ResXR-Unity-Research-Template-MazeDemo'
+    - line: '|   productName: ResXR-Unity-Research-Template-Maze-PerfTest-Default'
     - line: '|   defaultCursor: {instanceID: 0}'
     - line: '|   cursorHotspot: {x: 0, y: 0}'
     - line: '|   m_SplashScreenBackgroundColor: {r: 0.12156863, g: 0.12156863, b:
@@ -194,14 +194,14 @@ MonoBehaviour:
     - line: '|   androidMaxAspectRatio: 2.4'
     - line: '|   androidMinAspectRatio: 1'
     - line: '|   applicationIdentifier:'
-    - line: '|     Android: com.ResXR.ResXRUnityResearchTemplateMazeDemo'
+    - line: '|     Android: com.ResXR.ResXRUnityResearchTemplateMazePerfTestDefault'
     - line: '|   buildNumber:'
     - line: '|     Standalone: 0'
     - line: '|     VisionOS: 0'
     - line: '|     iPhone: 0'
     - line: '|     tvOS: 0'
     - line: '|   overrideDefaultApplicationIdentifier: 0'
-    - line: '|   AndroidBundleVersionCode: 96510606'
+    - line: '|   AndroidBundleVersionCode: 97490602'
     - line: '|   AndroidMinSdkVersion: 23'
     - line: '|   AndroidTargetSdkVersion: 0'
     - line: '|   AndroidPreferredInstallLocation: 0'
@@ -846,7 +846,7 @@ MonoBehaviour:
     - rid: 2364810418051612772
       type: {class: AndroidPlatformBuildSettings, ns: UnityEditor.Android, asm: UnityEditor.Android.Extensions}
       data:
-        m_Development: 0
+        m_Development: 1
         m_ConnectProfiler: 0
         m_BuildWithDeepProfilingSupport: 0
         m_AllowDebugging: 0
@@ -863,7 +863,7 @@ MonoBehaviour:
         m_DebugSymbolLevel: 1
         m_DebugSymbolFormat: 5
         m_CurrentDeploymentTargetId: __builtin__target_default
-        m_BuildType: 2
+        m_BuildType: 1
         m_BuildAppBundle: 0
         m_IPAddressToConnect: 
         m_SymlinkSources: 0

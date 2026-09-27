@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Unity.Profiling;
 using UnityEngine;
 using static OVRPlugin;
 using static ResXRData.BuildInfoLoader;
@@ -166,6 +167,25 @@ namespace ResXRData
 
         [Header("FaceExpressions.csv")]
         public bool recordFaceExpressions = true;
+
+        [Header("Performance Test (leave off for normal use)")]
+        [Tooltip("Perf-test only. When true, FixedUpdate returns immediately without running any collector or writing any row — a true zero-cost baseline. The singleton stays alive so ReportEvent/LogCustom calls from flow scripts remain safe. See Assets/ResXR/Testing/PerfTest/README.md.")]
+        public bool DisableContinuousLoggingForBaselineTest = false;
+
+        // Perf-test instrumentation. ProfilerMarkers are ~free even with no profiler attached
+        // (a few ns per Begin/End), so they stay in permanently rather than behind a flag.
+        private static readonly ProfilerMarker s_FixedUpdateMarker = new ProfilerMarker("ResXR.DataManager.FixedUpdate");
+        private static readonly ProfilerMarker s_WriteContinuousMarker = new ProfilerMarker("ResXR.DataManager.WriteContinuous");
+        private static readonly ProfilerMarker s_WriteFaceMarker = new ProfilerMarker("ResXR.DataManager.WriteFace");
+        private ProfilerMarker[] _collectorMarkers;
+
+        /// <summary>
+        /// Collector names in the same order as they run in FixedUpdate, set once in DoInAwake.
+        /// Each has a matching "ResXR.Collect.&lt;name&gt;" ProfilerMarker — read via
+        /// Unity.Profiling.Recorder.Get(...) at runtime. Used by ResXRDataPerfSampler
+        /// (Assets/ResXR/Testing/PerfTest/) to attribute FixedUpdate cost per collector.
+        /// </summary>
+        public string[] ActiveCollectorNames { get; private set; } = Array.Empty<string>();
 
         // paths
         private string _rootDir;
@@ -336,6 +356,17 @@ namespace ResXRData
             foreach (IContinuousCollector c in _continuousCollectors)
                 c.Configure(_continuousSchema, recordingOptions);
 
+            // Perf-test instrumentation: one ProfilerMarker per active collector, named after
+            // the same CollectorName every collector already exposes. One-time allocation, not
+            // per-tick. See ActiveCollectorNames doc comment above.
+            ActiveCollectorNames = new string[_continuousCollectors.Count];
+            _collectorMarkers = new ProfilerMarker[_continuousCollectors.Count];
+            for (int i = 0; i < _continuousCollectors.Count; i++)
+            {
+                ActiveCollectorNames[i] = _continuousCollectors[i].CollectorName;
+                _collectorMarkers[i] = new ProfilerMarker($"ResXR.Collect.{ActiveCollectorNames[i]}");
+            }
+
             if (recordFaceExpressions)
             {
                 _faceCollector = new OVRFaceCollector();
@@ -362,6 +393,13 @@ namespace ResXRData
 
         private void FixedUpdate()
         {
+            // Perf-test baseline: skip all collector/write/flush work entirely. Checked first,
+            // outside the marker below, so this condition's own cost is a single bool compare —
+            // not even the marker Begin/End pair runs. See DisableContinuousLoggingForBaselineTest.
+            if (DisableContinuousLoggingForBaselineTest) return;
+
+            s_FixedUpdateMarker.Begin();
+
             // sample time
             float t = Time.realtimeSinceStartup;
 
@@ -372,7 +410,9 @@ namespace ResXRData
             _continuousRow.TrySet("timeSinceStartup", t);
             for (int i = 0; i < _continuousCollectors.Count; i++)
             {
+                _collectorMarkers[i].Begin();
                 _continuousCollectors[i].Collect(_continuousRow, t);
+                _collectorMarkers[i].End();
             }
 
             // live monitor tap (ContinuousData) � only if there are subscribers
@@ -388,15 +428,17 @@ namespace ResXRData
             }
 
             // write row
+            s_WriteContinuousMarker.Begin();
             _continuousWriter.WriteRow(_continuousSchema,
                                        _continuousRow.ValuesArray,
                                        _continuousRow.ColumnIsSetMask);
+            s_WriteContinuousMarker.End();
 
             #endregion
 
             #region [Face Expressions] Collect + fire live monitor + write to file
 
-            // collect 
+            // collect
             if (recordFaceExpressions && _faceCollector != null)
             {
                 _faceRow.Clear();
@@ -415,12 +457,16 @@ namespace ResXRData
                     OnFaceExpressionSample(faceSample);
                 }
 
+                s_WriteFaceMarker.Begin();
                 _faceWriter.WriteRow(_faceSchema,
                                      _faceRow.ValuesArray,
                                      _faceRow.ColumnIsSetMask);
+                s_WriteFaceMarker.End();
             }
 
             #endregion
+
+            s_FixedUpdateMarker.End();
         }
 
         private void OnDestroy()
