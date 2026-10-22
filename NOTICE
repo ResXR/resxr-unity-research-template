@@ -4,6 +4,8 @@ Copyright 2026 The ResXR Research Template Contributors
 
 This product is licensed under the Apache License 2.0.
 
+Third-party components included in this repository, with their copyright notices and licenses, are listed in THIRD_PARTY_NOTICES.md.
+
 ---
 
 This product requires the Meta XR SDK, which is automatically installed via Unity Package Manager based on package dependencies defined in Packages/manifest.json. The SDK itself is not included in this repository.
