@@ -13,7 +13,7 @@ This template is the recording half of ResXR; the per-session packages it produc
 1. Click **"Use this template"** on GitHub and clone your new repository.
 2. Open Unity Hub, click **Add project from disk**, and select the folder.
    Unity 6000.0.68f1 with Android Build Support is required.
-   Runs on Meta Quest 2/3/Pro; **eye and face tracking require Quest Pro.**
+   Runs on Meta Quest 2/3/3S/Pro; **eye and face tracking require Quest Pro.**
 3. On first launch Unity auto-installs the Meta XR SDK (v 78.0.0) and all other package dependencies — no manual steps needed.
 
 See [Installation](https://docs.resxr.org/unity/installation/) for eye/face tracking setup on Quest Pro and Quest Link / Meta XR Simulator configuration.
@@ -22,7 +22,7 @@ See [Installation](https://docs.resxr.org/unity/installation/) for eye/face trac
 
 Open `Assets/ResXR/Base Scene/Base Scene.unity`, enable your target experiment in **File → Build Profiles** (Base Scene must be listed first), then press **Play** in the editor or use **File → Build And Run** for a device build.
 
-Session data is written to `…/Temp/ResXR_EditorLogs/` in the editor, or `Application.persistentDataPath` (`/sdcard/Android/data/<bundle.id>/files/`) on device. Feed the session folder to `resxr-python-pipeline` for BIDS conversion.
+Session data is written to `Application.persistentDataPath` (`/sdcard/Android/data/<bundle.id>/files/` on device), in the editor as well with the shipped settings (**Export In Editor** off on `ResXRDataManager`). With **Export In Editor** on, editor sessions go to the **Save File Path** folder, or to `ResXR_EditorLogs/` in the system temporary folder when that field is empty. Feed the session folder to `resxr-python-pipeline` for BIDS conversion.
 
 Follow the [Quickstart](https://docs.resxr.org/unity/quickstart/) for a full walkthrough.
 

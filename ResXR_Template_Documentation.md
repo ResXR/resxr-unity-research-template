@@ -41,9 +41,9 @@ The **ResXR Research Template** is a comprehensive Unity XR template designed sp
 
 ### Prerequisites
 
-- Unity 2021.3 or later
+- Unity 6 (6000.0.68f1)
 - Meta Quest SDK (OVR) - Automatically installed via Unity Package Manager
-- Meta Quest headset (Quest 2, Quest Pro, Quest 3)
+- Meta Quest headset (Quest 2, Quest Pro, Quest 3, Quest 3S)
 - Basic knowledge of Unity and C#
 
 **Note**: The Meta XR SDK is not included in this repository. It will be automatically downloaded and installed by Unity when you open the project, based on the package dependencies defined in `Packages/manifest.json`.
@@ -408,8 +408,8 @@ await ResXRPlayer.Instance.PinchingInputManager.WaitForHoldAndRelease(HandType.R
 ```
 
 **PinchingConfiguration**:
-- `PinchEnterThreshold` - Pinch strength to start pinching (default: ~0.7)
-- `PinchExitThreshold` - Pinch strength to release (default: ~0.3)
+- `PinchEnterThreshold` - Pinch strength to start pinching (default: 0.99)
+- `PinchExitThreshold` - Pinch strength to release (default: 0.97)
 - `PinchMinDistance` - Minimum distance for full pinch
 - `PinchMaxDistance` - Maximum distance for no pinch
 - `MinimumTimeBetweenPinches` - Cooldown between pinches
@@ -704,19 +704,23 @@ public class ChoiceEvents : CustomDataClass
 
 ##### 2. Reporter Functions
 
-Add helper functions in `ResXRDataManager.cs` to log your events, or call `LogCustom` directly. The template includes:
+Give each data class a static `Log()` method that builds the object and calls `LogCustom`, or call `LogCustom` directly. The template includes `ReportEvent` in `ResXRDataManager.cs`, and the Binary Choice demo's `ChoiceEvents` class (`BinaryChoiceDataClasses.cs`) has a `Log()` method:
 
 ```csharp
+// ResXRDataManager.cs
 public void ReportEvent(string name, float onset, float duration)
 {
     LogCustom(new Events(name, onset, duration));
 }
 
-public void LogChoice(string task, int trial, string optionAName, string optionBName, string choice,
-    string chosenOption, string handUsed, float reactionTime, float displayTime, float choiceTime)
+// BinaryChoiceDataClasses.cs, inside ChoiceEvents
+public static void Log(string task, int trial, string optionAName, string optionBName,
+    string choice, string chosenOption, string handUsed,
+    float reactionTime, float displayTime, float choiceTime)
 {
-    var choiceEvent = new ChoiceEvents(task, trial, optionAName, optionBName, choice, chosenOption, handUsed, reactionTime, displayTime, choiceTime);
-    LogCustom(choiceEvent);
+    ResXRDataManager.Instance.LogCustom(
+        new ChoiceEvents(task, trial, optionAName, optionBName, choice,
+                         chosenOption, handUsed, reactionTime, displayTime, choiceTime));
 }
 ```
 
@@ -724,7 +728,7 @@ public void LogChoice(string task, int trial, string optionAName, string optionB
 
 In the Unity Inspector, assign transforms you want to track continuously:
 
-1. Select `ResXR_DataManager_V2` prefab in scene
+1. Select `ResXR_DataManager` prefab in scene
 2. Find "Custom Transforms To Record" list
 3. Drag objects you want to track (e.g., stimuli, targets)
 4. Their positions/rotations will appear in `ContinuousData.csv`
@@ -785,8 +789,8 @@ Collectors → RowBuffer → CsvRowWriter → CSV files
 
 #### Output Files
 
-- **ContinuousData.csv** - All continuous tracking data (head, hands, eyes, body, face, custom transforms). Gaze columns include combined (FocusedObject, EyeGazeHitPosition) and, when the "Include Separate Eyes Gaze" recording option is enabled, per-eye hit points and focused objects.
-- **FaceExpressions.csv** - Face expression weights
+- **ContinuousData.csv** - All continuous tracking data (head, hands, eyes, body, custom transforms); face expressions are written to their own file (next item). Gaze columns include combined (FocusedObject, EyeGazeHitPosition) and, when the "Include Separate Eyes Gaze" recording option is enabled, per-eye hit points and focused objects.
+- **FaceExpressionData.csv** - Face expression weights, in a separate file whose rows share the `timeSinceStartup` clock with ContinuousData.csv
 - **Custom Event CSVs** - One CSV per custom data class (e.g., `ChoiceEvents.csv`, `{sessionTime}_Events.csv` from the template `ReportEvent` type)
 - **{sessionTime}_SessionMetadata.json** - Session information, schema details, device/platform provenance (manufacturers_model_name_raw, software_versions_raw), tracking_origin_type (Meta), reference_frames (UnityWorld/HandLocal for later *_channels.json), and device_utc_offset (DST-aware). Includes **build_info_available**: when true, build_id, git_commit, and utc_build_iso8601 are set from build_info.json; when false, those three fields are left empty (no placeholders). A Python pipeline can use this to generate BIDS motion files.
 - **{sessionTime}_CustomTables/{sessionTime}_CustomTables.json** - Written at session end. One entry per experiment-specific custom data class used during the session: CSV filename, row count, and per-column `[ColumnInfo]` metadata (PascalCase keys). Built-in tables (Events, ResXRDebugLogs) are excluded. Consumed by the Python pipeline to generate `*_events.json` BIDS sidecar files.
@@ -1050,7 +1054,7 @@ public class MyExperimentSessionManager : ResXRSingleton<MyExperimentSessionMana
     private void StartSession()
     {
         // Your session initialization logic
-        ResXRDataManager.Instance.LogCustom("Session started");
+        ResXRDataManager.Instance.ReportEvent("session_start", Time.realtimeSinceStartup, 0f);
     }
 
     private async UniTask BetweenTasksFlow()
@@ -1096,8 +1100,8 @@ public class TrialManager : ResXRSingleton<TrialManager>
         MyTrial trial = _currentTrial as MyTrial;
         // Deactivate stimulus
         trial.stimulus.SetActive(false);
-        // Log trial end
-        ResXRDataManager.Instance.LogTrialEnd(trial.trialName);
+        // Log trial end (one row in Events.csv)
+        ResXRDataManager.Instance.ReportEvent($"trial_end:{trial.trialName}", Time.realtimeSinceStartup, 0f);
     }
 
     private async UniTask YourTrialLogic()
@@ -1543,12 +1547,12 @@ A two-choice decision-making experiment where participants choose between two op
 A navigation experiment where participants navigate a maze to collect coins.
 
 **Key Components**:
-- `Maze.cs` - Maze generation and management
+- `Maze.cs` - Rotates the maze by 180 degrees (called between trials)
 - `Coin.cs` - Collectible coin objects
 - Flow management: `Maze_SessionManager`, `Maze_TaskManager`, `Maze_TrialManager`
 
 **Features**:
-- Procedural maze generation
+- Fixed maze layout (a prefab), rotated by 180 degrees between trials
 - Coin collection tracking
 - Navigation data logging
 
@@ -1658,8 +1662,12 @@ graph TD
 ### Logging Data
 
 ```csharp
-// Log custom event
-ResXRDataManager.Instance.LogChoice(trialNum, option1, option2, choice, reactionTime);
+// Log an event marker (Events.csv)
+ResXRDataManager.Instance.ReportEvent("stimulus_onset", Time.realtimeSinceStartup, 0f);
+
+// Log one row of a custom data class (one CSV per class), e.g. in the Binary Choice demo
+ChoiceEvents.Log(task, trial, optionAName, optionBName, choice, chosenOption, handUsed,
+    reactionTime, displayTime, choiceTime);
 
 // Custom transforms are automatically tracked if added to inspector
 ```

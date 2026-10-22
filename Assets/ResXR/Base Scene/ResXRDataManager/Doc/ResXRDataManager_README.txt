@@ -132,7 +132,7 @@ Recording options (inspector):
   They will automatically appear as extra columns in
   ContinuousData.csv.
 
-That’s it. ContinuousData.csv and FaceExpressions.csv 
+That’s it. ContinuousData.csv and FaceExpressionData.csv 
 are always recorded with the built-in schemas, you 
 don’t need to edit them. For details of those columns, 
 refer to data_sources_README.txt.
@@ -310,7 +310,7 @@ A: No. Empty cells are left blank in CSV (meaning:
    “no data this frame”).
 
 Q: How often is data logged?  
-A: ContinuousData.csv and FaceExpressions.csv are logged 
+A: ContinuousData.csv and FaceExpressionData.csv are logged 
    once per physics tick (Unity’s FixedUpdate). The tick
    rate is set in Project Settings → Time → Fixed Timestep 
    (default is 0.01 seconds = 100 Hz).

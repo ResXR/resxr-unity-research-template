@@ -70,7 +70,7 @@ Fixed values that document the coordinate conventions used in every CSV file.
 
 | Field | Source | Meaning | Example / Values |
 |---|---|---|---|
-| `schema_rev` | Hardcoded `"2"` | Internal version of this metadata schema. Incremented if the field layout changes. | `"2"` |
+| `schema_rev` | Hardcoded `"3"` | Internal version of this metadata schema. Incremented if the field layout changes. | `"3"` |
 | `rotation_euler_order` | Hardcoded `"ZXY"` | Order in which Unity decomposes quaternions into Euler angles (`Transform.eulerAngles`). All rotation columns in the CSV follow this order. | `"ZXY"` |
 | `rotation_units` | Hardcoded `"degrees"` | Unit of all rotation values in the CSV files. | `"degrees"` |
 
@@ -101,7 +101,7 @@ Kept for backward compatibility with older pipeline versions. They mirror the `i
 
 | Field | Source | Mirrors | Example / Values |
 |---|---|---|---|
-| `face_enabled` | `recordFaceExpressions` (manager field) | Whether face expressions are recorded (controls `FaceExpressions.csv`). Separate inspector toggle from the main recording options. | `true` / `false` |
+| `face_enabled` | `recordFaceExpressions` (manager field) | Whether face expressions are recorded (controls `FaceExpressionData.csv`). Separate inspector toggle from the main recording options. | `true` / `false` |
 | `body_enabled` | `recordingOptions.includeBody` | `includeBody` | `true` / `false` |
 | `hands_enabled` | `recordingOptions.includeHands` | `includeHands` | `true` / `false` |
 | `eyes_enabled` | `recordingOptions.includeEyes` | `includeEyes` | `true` / `false` |
@@ -154,9 +154,9 @@ Fixed values describing the coordinate systems used in the CSV files. Consumed b
 | `reference_frames.UnityWorld.RotationRule` | `"left-hand"` | Unity's world coordinate system is left-handed (+X right, +Y up, +Z forward). |
 | `reference_frames.UnityWorld.RotationOrder` | `"ZXY"` | Euler decomposition order for world-space rotations (`Transform.eulerAngles`). |
 | `reference_frames.UnityWorld.SpatialAxes` | `"+X right, +Y up, +Z forward (Unity world)"` | Axis directions in Unity world space. |
-| `reference_frames.HandLocal.RotationRule` | `"right-hand"` | OVR hand-local space is right-handed (native tracking space convention). |
-| `reference_frames.HandLocal.RotationOrder` | `"ZXY"` | Euler decomposition order for hand-local rotations. |
-| `reference_frames.HandLocal.SpatialAxes` | `"hand-local axes relative to hand root (tracking space)"` | Bone positions are relative to the hand's root pose; not converted to world space. |
+| `reference_frames.HandLocal.RotationRule` | `"right-hand"` | The SDK's tracking space, in which the hand bones are recorded, is right-handed. |
+| `reference_frames.HandLocal.RotationOrder` | `"ZXY"` | Euler decomposition order for hand bone rotations. |
+| `reference_frames.HandLocal.SpatialAxes` | `"hand-local axes relative to hand root (tracking space)"` | Hand bones are recorded in the SDK's tracking space as OVRPlugin returns them: not relative to the hand's root pose and not converted to world space. |
 
 ---
 

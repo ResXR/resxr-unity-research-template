@@ -34,7 +34,7 @@ Set on the `ResXR_DataManager` prefab in your scene:
 | **Include Separate Eyes Gaze** | Per-eye hit positions and focused objects. Enables 3 raycasts per frame (left, right, combined) in `ResXREyeTracker`. Turn off in heavy scenes — when disabled, only 1 combined raycast runs. |
 | **Include Hands** | Hand tracking, bone positions, confidence |
 | **Include Body** | Body joint positions and calibration |
-| **Include Face** | Face expression weights and validity (`FaceExpressions.csv`) |
+| **Record Face Expressions** | Face expression weights and validity (`FaceExpressionData.csv`, a separate file) |
 | **Include System Status** | Recenter events, tracking origin changes, user presence, tracking loss |
 | **Custom Transforms To Record** | Drag any scene object — its position/rotation appears as extra columns in `ContinuousData.csv` |
 
@@ -294,7 +294,7 @@ This is useful for simple positional tracking. For richer event-style data (e.g.
 
 ### How to Use
 
-1. Select the `ResXR_DataManager_V2` prefab in your scene
+1. Select the `ResXR_DataManager` prefab in your scene
 2. Find the **"Custom Transforms To Record"** list in the Inspector
 3. Drag any scene object into the list
 
@@ -433,7 +433,7 @@ OnDestroy (session end)
 **Q: Do I need to edit ResXRDataManager.cs or SchemaBuilder.cs?**  
 A: Only `ResXRDataManager.cs`, and only to add your custom data classes and reporter functions. Never edit `SchemaBuilder.cs` or the collectors unless you have a specific research requirement.
 
-**Q: Where is the column list for ContinuousData.csv and FaceExpressions.csv?**  
+**Q: Where is the column list for ContinuousData.csv and FaceExpressionData.csv?**  
 A: See `data_sources_README.txt`.
 
 **Q: How do I add a new event table?**  
