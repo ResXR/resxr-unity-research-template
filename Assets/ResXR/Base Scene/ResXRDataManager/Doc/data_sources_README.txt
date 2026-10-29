@@ -19,7 +19,7 @@ timeSinceStartup                          <- Unity: Time.realTimeSinceStartup   
 #   3. Adds OVRCameraRig's position offset
 #
 # Velocities and angular velocities are rotated (steps 1-2) but NOT offset.
-# Hand bones remain in hand-local space (relative to hand root).
+# Hand bones are not converted: they stay in the SDK's tracking space, as OVRPlugin returns them.
 # ============================================================
 
 # - Gaze: combined (cyclopean) hit point / raycast -
@@ -120,15 +120,15 @@ LeftHand_FingerConf_Pinky                  <- HandState.FingerConfidences[Pinky]
 LeftHand_RequestedTS                       <- HandState.RequestedTimeStamp                            (double: seconds)
 LeftHand_SampleTS                          <- HandState.SampleTimeStamp                               (double: seconds)
 
-# NOTE ON HAND ROOT vs PALM BONE:
+# NOTE ON HAND ROOT vs BONES:
 # - LeftHand_Root represents the hand root pose in WORLD SPACE (converted from tracking space)
-# - Left_XRHand_Palm (bone[0] below) represents the same physical pose but in HAND-LOCAL SPACE (relative to root)
-# - The Palm bone in local space will typically be at origin (0,0,0) with identity rotation since it IS the root
+# - The bones below are in the SDK's TRACKING SPACE (not converted to world space and not relative to the root),
+#   so they are not in the same frame as LeftHand_Root
 # - Both Node_HandLeft and LeftHand_Root provide world-space hand pose but may differ slightly (different APIs)
 
 # Per-bone (columns named by SDK BoneId enum; order = SDK bone enum order)
-Left_<BoneName>_x/_y/_z                    <- HandState.BonePositions[boneIndex].{x,y,z}  (e.g., Left_Hand_Thumb0_x or Left_XRHand_Thumb_Metacarpal_x)  [hand-local space]
-Left_<BoneName>_qx/_qy/_qz/_qw             <- HandState.BoneRotations[boneIndex].{x,y,z,w}  [hand-local space]
+Left_<BoneName>_x/_y/_z                    <- HandState.BonePositions[boneIndex].{x,y,z}  (e.g., Left_Hand_Thumb0_x or Left_XRHand_Thumb_Metacarpal_x)  [tracking space]
+Left_<BoneName>_qx/_qy/_qz/_qw             <- HandState.BoneRotations[boneIndex].{x,y,z,w}  [tracking space]
 
 RightHand_*                                <- Same fields as LeftHand (Hand.HandRight)
 
@@ -161,7 +161,7 @@ Custom_<Name>_qx/_qy/_qz/_qw                <- Unity Transform.rotation.{x,y,z,w
 # Coordinate Space Definitions:
 # - [converted to world space]: Originally from OVRPlugin in tracking space, converted to Unity world space via TrackingSpaceConverter
 # - [world space]: Native Unity world space data (Transform.position, raycast hits, etc.)
-# - [hand-local space]: Relative to the hand's root (wrist). Each hand bone is relative to its root pose.
+# - [tracking space]: As OVRPlugin returns it, in the SDK's tracking space; not converted to Unity world space (hand bones).
 
 
 # FACEEXPRESSIONS - column <- source

@@ -737,8 +737,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Text pop up. Write your text and then press SetNewScale
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: f75b6952568eb244ea15495febc34083, type: 2}
-  m_sharedMaterial: {fileID: 6012080355370164626, guid: f75b6952568eb244ea15495febc34083, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 511a55a7ac038824cb2be9a5f47a219c, type: 2}
+  m_sharedMaterial: {fileID: -6983680507292258394, guid: 511a55a7ac038824cb2be9a5f47a219c, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -833,7 +833,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 6012080355370164626, guid: f75b6952568eb244ea15495febc34083, type: 2}
+  - {fileID: -6983680507292258394, guid: 511a55a7ac038824cb2be9a5f47a219c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
